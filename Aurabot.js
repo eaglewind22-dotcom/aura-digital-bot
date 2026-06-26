@@ -134,5 +134,14 @@ bot.action('main_menu', (ctx) => {
         ])
     );
 });
-
+// 🌐 Render Web Service တောင်းဆိုချက်ကို တုံ့ပြန်ရန် Port ဖွင့်ပေးခြင်း
+const http = require('http');
+const PORT = process.env.PORT || 3000;
+const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Aura Digital Bot is Running Perfectly!\n');
+});
+server.listen(PORT, () => {
+    console.log(`Web server listening on port ${PORT}`);
+});
 bot.launch().then(() => console.log('Aura Digital Fully Customized Bot is Live & Secure 🚀'));
