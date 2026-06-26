@@ -1,0 +1,12 @@
+{
+  "name": "aura-digital-bot",
+  "version": "1.0.0",
+  "description": "Telegram TopUp Bot",
+  "main": "Aurabot.js",
+  "scripts": {
+    "start": "node Aurabot.js"
+  },
+  "dependencies": {
+    "telegraf": "^4.16.3"
+  }
+}
