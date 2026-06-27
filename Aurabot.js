@@ -2,15 +2,13 @@ const { Telegraf, Markup } = require('telegraf');
 const http = require('http');
 const fs = require('fs');
 
-// 🔐 Verified Core Setup
 const BOT_TOKEN = '8953970980:AAG-8uV8P9ni_vlmXVGdTZfdVrSFHuosX3Y';
 const ADMIN_CHAT_ID = '7534742589'; 
-const CHANNEL_USERNAME = '@AuraDigitalPremium'; // Review များ Auto သွားမည့် Channel
+const CHANNEL_USERNAME = '@AuraDigitalPremium'; // သင့် Channel Username ကို ဖော်ပြပါ
 
 const bot = new Telegraf(BOT_TOKEN);
 const userSessions = new Map();
 
-// 📂 Lightweight Persistent Database for Sales Bookkeeping
 const DB_FILE = 'aura_sales_db.json';
 if (!fs.existsSync(DB_FILE)) {
     fs.writeFileSync(DB_FILE, JSON.stringify({ total_orders: 0, total_revenue: 0, orders: [] }, null, 2));
@@ -19,7 +17,6 @@ if (!fs.existsSync(DB_FILE)) {
 function getSalesData() { return JSON.parse(fs.readFileSync(DB_FILE)); }
 function saveSalesData(data) { fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2)); }
 
-// 🛒 Strategy Pricing Matrix
 const PRICES = {
     'mlbb_wp': { name: '🔥 Weekly Pass (Best Price)', price: 6450 },
     'mlbb_tp': { name: '🤩 Twilight Pass', price: 34300 },
@@ -30,23 +27,12 @@ const PRICES = {
     'mlbb_1049': { name: '💎 Dia 1049', price: 62500 }
 };
 
-// 🛡️ Anti-Spam Control
-const rateLimit = new Map();
-function isSpamming(userId) {
-    const now = Date.now();
-    if (rateLimit.has(userId) && (now - rateLimit.get(userId) < 1200)) return true;
-    rateLimit.set(userId, now);
-    return false;
-}
-
-// ---------------------- [ ၁။ USER INTERFACE INTERACTION ] ----------------------
-
+// 1. User Side - Start
 bot.start((ctx) => {
-    if (isSpamming(ctx.from.id)) return;
-    userSessions.delete(ctx.from.id);
-    
+    const uid = ctx.from.id.toString();
+    userSessions.delete(uid);
     ctx.replyWithMarkdownV2(
-        `✨ *AURA DIGITAL \\- Top\\-Up Service* \n\n🤖 ပြိုင်ဘက်ထက် ဈေးနှုန်းသက်သာပြီး စိတ်ချရဆုံးစနစ်ဖြင့် လူကိုယ်တိုင် စိစစ်ဖြည့်သွင်းပေးနေပါတယ်ဗျာ။\n\n📌 *Official Channel:* [Aura Digital Channel](https://t\\.me/AuraDigitalPremium)`,
+        `✨ *AURA DIGITAL \\- Top\\-Up Service* \n\n🤖 စိတ်ချရဆုံးစနစ်ဖြင့် လူကိုယ်တိုင် စိစစ်ဖြည့်သွင်းပေးနေပါတယ်ဗျာ။\n\n📌 *Official Channel:* [Aura Digital Channel](https://t\\.me/AuraDigitalPremium)`,
         Markup.inlineKeyboard([[Markup.button.callback('🎮 Mobile Legends (MLBB)', 'cat_mlbb')]])
     );
 });
@@ -66,7 +52,8 @@ bot.action(/^buy_(.+)$/, (ctx) => {
     const item = PRICES[key];
     if (!item) return ctx.reply('⚠️ ပစ္စည်းရှာမတွေ့ပါ။');
 
-    userSessions.set(ctx.from.id, { item: item.name, price: item.price, step: 'AWAITING_ID' });
+    const uid = ctx.from.id.toString();
+    userSessions.set(uid, { item: item.name, price: item.price, step: 'AWAITING_ID' });
 
     ctx.deleteMessage().catch(() => {});
     ctx.replyWithMarkdownV2(
@@ -77,45 +64,45 @@ bot.action(/^buy_(.+)$/, (ctx) => {
 });
 
 bot.on('text', async (ctx) => {
-    if (isSpamming(ctx.from.id)) return;
-    const session = userSessions.get(ctx.from.id);
+    const uid = ctx.from.id.toString();
+    const session = userSessions.get(uid);
     if (!session || session.step !== 'AWAITING_ID') return;
 
     const inputId = ctx.message.text.trim();
     if (!/^\d+\s*\(\d+\)$/.test(inputId) && !/^\d+\s+\d+$/.test(inputId)) {
-        return ctx.reply('⚠️ ပုံစံမမှန်ကန်ပါ။ ကျေးဇူးပြု၍ နမူနာပြထားသည့်အတိုင်း User ID နှင့် Zone ID ကွင်းစကွင်းပိတ်ပါဝင်အောင် ရိုက်ထည့်ပေးပါရန်။ \n\n(ဥပမာ - 166049831 (2851))');
+        return ctx.reply('⚠️ ပုံစံမမှန်ကန်ပါ။ ဥပမာအတိုင်း ကွင်းစကွင်းပိတ်ပါဝင်အောင် ရိုက်ပေးပါရန်။ (ဥပမာ - 166049831 (2851))');
     }
 
     session.gameId = inputId;
     session.step = 'AWAITING_RECEIPT';
-    userSessions.set(ctx.from.id, session);
+    userSessions.set(uid, session);
 
     await ctx.replyWithMarkdownV2(
         `💵 *စုစုပေါင်းကျသင့်ငွေ:* ${session.price.toLocaleString()} Kyats\n\n` +
-        `📌 *အောက်ပါအကောင့်များသို့သာ ငွေလွှဲပေးပါရန်:* \n` +
-        `• 📱 *KPay:* \`09692272242\` \\(Daw Aye Aye Myint\\)\n` +
-        `• 🌊 *WaveMoney:* \`09400266700\` \\(Wunna Myo Oo\\)\n\n` +
-        `⚠️ *🛑 အရေးကြီးသတိပေးချက် 🛑* \n` +
-        `ငွေလွှဲခရက်ဒစ် Note ထဲတွင် *""Di / Uc / Wp""* စသည့် စာသားများ *လုံးဝ \\(လုံးဝ\\) မရေးရပါ\\!* ရေးလာပါက အော်ဒါကို ပယ်ဖျက်ပါမည်။\n\n` +
-        `လွှဲပြီးပါက *ငွေလွှဲပြေစာ Screenshot* ကို ဤ Chat ထဲသို့ ပို့ပေးပါဗျာ။`
+        `📌 *အောက်ပါအကောင့်များသို့ ငွေလွှဲပေးပါရန်:* \n` +
+        `• 📱 *KPay:* \`09692272242\`\n` +
+        `• 🌊 *WaveMoney:* \`09400266700\`\n\n` +
+        `လွှဲပြီးပါက *ငွေလွှဲပြေစာ Screenshot* ကို ပို့ပေးပါဗျာ။`
     );
 });
 
 bot.on('photo', async (ctx) => {
-    const session = userSessions.get(ctx.from.id);
+    const uid = ctx.from.id.toString();
+    const session = userSessions.get(uid);
     if (!session || session.step !== 'AWAITING_RECEIPT') return;
 
     const orderId = 'AD' + Math.floor(1000 + Math.random() * 9000);
     session.orderId = orderId;
+    userSessions.set(uid, session);
 
-    ctx.reply(`🎉 Aura Digital မှ လူကြီးမင်း၏ ငွေလွှဲပြေစာကို လက်ခံရရှိပါပြီ။ \nအော်ဒါနံပါတ်: #${orderId} \nလူကိုယ်တိုင် စိစစ်ပြီး မိနစ်ပိုင်းအတွင်း ဖြည့်သွင်းပေးပါမည်ဗျာ။`);
+    ctx.reply(`🎉 ပြေစာလက်ခံရရှိပါပြီ။ အော်ဒါနံပါတ်: #${orderId} ကို မကြာမီ ဖြည့်သွင်းပေးပါမည်ဗျာ။`);
 
-    const orderDetails = `🚨 *AURA DIGITAL - MLBB အော်ဒါအသစ်* 🚨\n\n` +
+    const orderDetails = `🚨 *AURA DIGITAL - အော်ဒါအသစ်* 🚨\n\n` +
                          `🆔 Order ID: *#${orderId}*\n` +
-                         `👤 ဝယ်ယူသူ: [${ctx.from.first_name || 'Customer'}](tg://user?id=${ctx.from.id})\n` +
+                         `👤 ဝယ်ယူသူ: [${ctx.from.first_name || 'Customer'}](tg://user?id=${uid})\n` +
                          `🎮 ပစ္စည်း: *${session.item}*\n` +
                          `🎯 MLBB ID: \`${session.gameId}\`\n` +
-                         `💰 စစ်ဆေးရမည့်ငွေ: *${session.price.toLocaleString()} Ks*`;
+                         `💰 ငွေပမာဏ: *${session.price.toLocaleString()} Ks*`;
 
     const photoId = ctx.message.photo[ctx.message.photo.length - 1].file_id;
 
@@ -124,112 +111,89 @@ bot.on('photo', async (ctx) => {
             caption: orderDetails,
             parse_mode: 'Markdown',
             ...Markup.inlineKeyboard([
-                [Markup.button.callback('✅ Confirm Order (Done)', `confirm_${ctx.from.id}_${orderId}`)]
+                [
+                    Markup.button.callback('✅ Confirm (Done)', `confirm_${uid}_${orderId}`),
+                    Markup.button.callback('❌ Cancel', `cancel_${uid}_${orderId}`)
+                ]
             ])
         });
-    } catch (e) { console.error("Notification Error:", e); }
-
-    userSessions.set(ctx.from.id, session); // Save for review phase
+    } catch (e) { console.error(e); }
 });
 
-// ---------------------- [ ၂။ ADMIN OPERATIONS & AUTOMATION ] ----------------------
-
+// 2. Admin Actions (Fixed String Match Bug)
 bot.action(/^confirm_(\d+)_(.+)$/, async (ctx) => {
-    const userId = ctx.match[1];
+    const uid = ctx.match[1];
     const orderId = ctx.match[2];
-    const session = userSessions.get(parseInt(userId));
+    const session = userSessions.get(uid); // Fixed: String ID direct lookup
 
     if (!session || session.orderId !== orderId) {
-        return ctx.answerCbQuery('⚠️ ဤအော်ဒါ session သက်တမ်းကုန်ဆုံးသွားပါပြီ သို့မဟုတ် ပြီးစီးသွားပါပြီ။', { show_alert: true });
+        return ctx.answerCbQuery('⚠️ ဤအော်ဒါသည် သက်တမ်းကုန်ဆုံးသွားပါပြီ။', { show_alert: true });
     }
 
-    // ၁။ Bookkeeping Database ထဲ စာရင်းအလိုအလျောက် သွင်းခြင်း
+    // စာရင်းသွင်းခြင်း
     const db = getSalesData();
     db.total_orders += 1;
     db.total_revenue += session.price;
-    db.orders.push({ orderId: orderId, item: session.item, price: session.price, date: new Date().toLocaleDateString() });
+    db.orders.push({ orderId, item: session.item, price: session.price, date: new Date().toLocaleDateString() });
     saveSalesData(db);
 
-    // ၂။ Admin Chat အား Status ပြောင်းလဲခြင်း
-    ctx.editMessageCaption(`✅ *အော်ဒါအောင်မြင်စွာ ဖြည့်သွင်းပြီးပါပြီ။* \n\n🆔 Order: #${orderId}\n🎮 Item: ${session.item}\n💰 Price: ${session.price.toLocaleString()} Ks`, { parse_mode: 'Markdown' }).catch(() => {});
+    ctx.editMessageCaption(`✅ *အော်ဒါအောင်မြင်စွာ ဖြည့်သွင်းပြီးပါပြီ။* \n\n🆔 Order: #${orderId}\n🎮 Item: ${session.item}`, { parse_mode: 'Markdown' }).catch(() => {});
 
-    // ၃။ Customer ဆီသို့ စိတ်ပညာဆန်းသစ်သော Review တောင်းသည့်စနစ် ပို့ဆောင်ခြင်း
+    // User ဆီ စာပို့ခြင်း
     try {
-        await bot.telegram.sendMessage(userId, 
-            `⚡ *Order Delivered\\!* \n\nလူကြီးမင်း၏ အော်ဒါနံပါတ် *#${orderId}* အား Aura Digital မှ ဂိမ်းထဲသို့ အောင်မြင်စွာ ဖြည့်သွင်းပေးပြီးပါပြီဗျာ။ \n\n🥰 ဝန်ဆောင်မှုကို သဘောကျနှစ်သက်တယ်ဆိုရင် အောက်ကခလုတ်လေးကိုနှိပ်ပြီး Review ပေးခဲ့ဖို့ မေတ္တာရပ်ခံပါတယ်ဗျာ။`,
-            {
-                parse_mode: 'MarkdownV2',
-                ...Markup.inlineKeyboard([
-                    [Markup.button.callback('⭐️⭐️⭐️⭐️⭐️ အရမ်းမြန်ပြီး စိတ်ချရတယ်ဗျာ', `rev_5_${orderId}`)],
-                    [Markup.button.callback('⭐️⭐️⭐️⭐️ အဆင်ပြေပါတယ်', `rev_4_${orderId}`)]
-                ])
-            }
+        await bot.telegram.sendMessage(uid, 
+            `⚡ *Order Delivered!* \n\nလူကြီးမင်း၏ အော်ဒါနံပါတ် *#${orderId}* အား အောင်မြင်စွာ ဖြည့်သွင်းပေးပြီးပါပြီဗျာ။\n\nဝန်ဆောင်မှုကို သဘောကျရင် Review လေး ပေးခဲ့ပါဦးဗျာ။`,
+            Markup.inlineKeyboard([[Markup.button.callback('⭐️⭐️⭐️⭐️⭐️ အရမ်းမြန်လို့ သဘောကျတယ်', `rev_5_${orderId}_${uid}`)]])
         );
-    } catch (e) { console.error("Notify User Success Error:", e); }
+    } catch (e) { console.error(e); }
 
-    ctx.answerCbQuery('✅ အော်ဒါပြီးစီးကြောင်း မှတ်တမ်းတင်ပြီးပါပြီ။');
+    ctx.answerCbQuery('✅ Done!');
 });
 
-// ---------------------- [ ၃။ AUTOMATIC REVIEW TO CHANNEL SYSTEM ] ----------------------
-
-bot.action(/^rev_(\d+)_(.+)$/, async (ctx) => {
-    const rating = ctx.match[1];
+bot.action(/^cancel_(\d+)_(.+)$/, async (ctx) => {
+    const uid = ctx.match[1];
     const orderId = ctx.match[2];
-    const stars = '⭐️'.repeat(parseInt(rating));
 
-    ctx.editMessageText('❤️ အဖိုးတန် Review ပေးပေးတဲ့အတွက် ကျေးဇူးအထူးတင်ပါတယ်ဗျာ။ လူကြီးမင်းတို့ရဲ့ စိတ်ချမ်းသာမှုက Aura Digital ရဲ့ ဂုဏ်သိက္ခာပါပဲ။').catch(() => {});
+    ctx.editMessageCaption(`❌ *ဤအော်ဒါကို ပယ်ဖျက်လိုက်ပါပြီ။* \n🆔 Order: #${orderId}`, { parse_mode: 'Markdown' }).catch(() => {});
 
-    // Channel ထဲသို့ Review အလိုအလျောက် ပို့ဆောင်ပြီး ပုံရိပ်မြှင့်တင်ခြင်း
-    const reviewPost = `✨ *CUSTOMER REVIEW | SUCCESSFUL ORDER* ✨\n\n` +
-                       `📦 Order ID: \`#${orderId}\`\n` +
-                       `💎 Status: *Successfully Transferred*\n` +
-                       `ထင်မြင်ချက်: ${stars} *အရမ်းမြန်ပြီး စိတ်ချရတယ်ဗျာ* \n\n` +
-                       `🤖 ၂၄ နာရီ ဝန်ဆောင်မှုရယူရန်: @Aura_Digital_Bot`;
+    try {
+        await bot.telegram.sendMessage(uid, `❌ လူကြီးမင်း၏ အော်ဒါနံပါတ် *#${orderId}* သည် ငွေလွှဲပြေစာ မမှန်ကန်ခြင်း (သို့မဟုတ်) အချက်အလက်မှားယွင်းခြင်းကြောင့် ပယ်ဖျက်ခြင်း ခံရပါသည်ဗျာ။`);
+    } catch (e) { console.error(e); }
+
+    userSessions.delete(uid);
+    ctx.answerCbQuery('❌ Cancelled');
+});
+
+// 3. Review to Channel
+bot.action(/^rev_5_(.+)_(.+)$/, async (ctx) => {
+    const orderId = ctx.match[1];
+    const uid = ctx.match[2];
+
+    ctx.editMessageText('❤️ Review ပေးပေးတဲ့အတွက် ကျေးဇူးအထူးတင်ပါတယ်ဗျာ။').catch(() => {});
+
+    const reviewPost = `✨ *CUSTOMER REVIEW | SUCCESSFUL ORDER* ✨\n\n📦 Order ID: \`#${orderId}\`\n💎 Status: *Successfully Transferred*\nထင်မြင်ချက်: ⭐️⭐️⭐️⭐️⭐️ *အရမ်းမြန်ပြီး စိတ်ချရတယ်ဗျာ*\n\n🤖 ဝန်ဆောင်မှုရယူရန်: @Aura_Digital_Bot`;
 
     try {
         await bot.telegram.sendMessage(CHANNEL_USERNAME, reviewPost, { parse_mode: 'Markdown' });
-    } catch (e) { console.error("Channel Broadcast Error:", e); }
+    } catch (e) { console.error(e); }
 
-    userSessions.delete(ctx.from.id);
+    userSessions.delete(uid);
 });
 
-// ---------------------- [ ၄။ ADMIN BOOKKEEPING DASHBOARD ] ----------------------
-
-// Admin Chat ထဲတွင် /dashboard ဟု ရိုက်နှိပ်ပါက စာရင်းဇယားချုပ် ချက်ချင်းထွက်လာမည်
+// 4. Admin Dashboard
 bot.command('dashboard', (ctx) => {
     if (ctx.from.id.toString() !== ADMIN_CHAT_ID) return;
-
     const db = getSalesData();
-    const summary = `📊 *AURA DIGITAL - နေ့စဉ်စာရင်းဇယားအနှစ်ချုပ်* 📊\n\n` +
-                    `📝 ယနေ့အထိ စုစုပေါင်းအော်ဒါ: *${db.total_orders} ခု*\n` +
-                    `💰 စုစုပေါင်း ရောင်းရငွေ: *${db.total_revenue.toLocaleString()} Ks*\n\n` +
-                    `📉 _မှတ်ချက်: ဤစာရင်းသည် ဆာဗာ Restart ကျသော်လည်း Local Database တွင် အမြဲလုံခြုံစွာ ရှိနေမည် ဖြစ်သည်။_`;
-
-    ctx.replyWithMarkdown(summary, Markup.inlineKeyboard([
-        [Markup.button.callback('🧹 စာရင်းဇယားအားလုံး ဖျက်ပစ်ရန် (Reset)', 'db_reset')]
-    ]));
+    ctx.replyWithMarkdown(`📊 *AURA DIGITAL - စာရင်းဇယားချုပ်* 📊\n\n📝 စုစုပေါင်းအော်ဒါ: *${db.total_orders} ခု*\n💰 စုစုပေါင်း ရောင်းရငွေ: *${db.total_revenue.toLocaleString()} Ks*`);
 });
 
-bot.action('db_reset', (ctx) => {
-    if (ctx.from.id.toString() !== ADMIN_CHAT_ID) return;
-    fs.writeFileSync(DB_FILE, JSON.stringify({ total_orders: 0, total_revenue: 0, orders: [] }, null, 2));
-    ctx.editMessageText('🧹 Local Database အားလုံးကို ၀ စုစုပေါင်းအဖြစ် အောင်မြင်စွာ Reset လုပ်ပြီးပါပြီဗျာ။').catch(() => {});
-});
-
-// Back to Main Logic
 bot.action('main_menu', (ctx) => {
-    userSessions.delete(ctx.from.id);
+    const uid = ctx.from.id.toString();
+    userSessions.delete(uid);
     ctx.editMessageText('👋 Aura Digital Main Menu မှ ကြိုဆိုပါတယ်ဗျာ။',
         Markup.inlineKeyboard([[Markup.button.callback('🎮 Mobile Legends (MLBB)', 'cat_mlbb')]])
     ).catch(() => {});
 });
 
-// Web Server Port for Render
-const PORT = process.env.PORT || 3000;
-const server = http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Aura Digital Advanced System is Active!\n');
-});
-server.listen(PORT, () => { console.log(`Web server running on port ${PORT}`); });
-
-bot.launch().then(() => console.log('Aura Digital Next-Gen Bot is Fully Live 🚀'));
+const server = http.createServer((req, res) => { res.writeHead(200); res.end('Running'); });
+server.listen(process.env.PORT || 3000, () => { bot.launch(); });
