@@ -10,10 +10,8 @@ const ADMIN_CHAT_ID = '7534742589';
 const ADMIN_USERNAME = '@Wunna2232003';
 const CHANNEL_USERNAME = '@AuraDigitalPremium';
 
-// MongoDB Cloud Production Database Link
 const MONGO_URI = 'mongodb+srv://eaglewind22_db:2232003wunna@cluster0.qqgs4ef.mongodb.net/aura_digital?retryWrites=true&w=majority&appName=Cluster0';
 
-// 🎯 ညီလေး ပို့ပေးထားသော QR File IDs များကို အစားထိုးထည့်သွင်းပေးထားပါသည်
 const KPAY_QR_FILE_ID = 'AgACAgUAAxkBAAPFakA6PlHwqkOWeaqurTgoBIpMAdEAAkMRaxvFEgFWSpVMAsTjLFkBAAMCAAN5AAM8BA'; 
 const WAVEMONEY_QR_FILE_ID = 'AgACAgUAAxkBAAO_akAykNVJr4YRpqWoTds2ZQbHmYwAAkARaxvFEgFWi_78b-d5oEYBAAMCAAN4AAM8BA';
 
@@ -132,7 +130,8 @@ bot.start(async (ctx) => {
     ctx.reply(`✨ Aura Digital Top-Up Service မှ ကြိုဆိုပါတယ်ဗျာ။\n\nအောက်ပါ Menu ခလုတ်များကို နှိပ်၍ ဝန်ဆောင်မှု ရယူနိုင်ပါပြီ။`, getMainMenu(uid));
 });
 
-bot.action('check_join', checkMiddleware, (ctx) => {
+bot.action('check_join', checkMiddleware, async (ctx) => {
+    await ctx.answerCbQuery('🔄 စစ်ဆေးနေပါသည်...');
     ctx.deleteMessage().catch(() => {});
     ctx.reply('🎉 Channel Join ပြီးမြောက်မှု အောင်မြင်ပါသည်။ အောက်ပါ Menu ကို သုံးနိုင်ပါပြီ။', getMainMenu(ctx.from.id.toString()));
 });
@@ -153,24 +152,25 @@ bot.hears('💰 My Points (အမှတ်စာရင်း)', checkMiddleware,
     const user = await User.findOne({ telegramId: uid });
     if (!user) return ctx.reply('⚠️ User profile Error.');
 
-    const cashValue = Math.floor(user.points / 100);
     let msg = `💰 *Aura Digital - လူကြီးမင်း၏ အမှတ်စာရင်း* 💰\n\n` +
               `👤 အသုံးပြုသူ: *${ctx.from.first_name}*\n` +
-              `🎯 : *${user.points.toLocaleString()} Points*\n` +
-              `(ငွေသားတန်ဖိုးအားဖြင့် = *${cashValue.toLocaleString()} Ks*)\n\n` +
+              `🎯 လက်ရှိအမှတ်: *${user.points.toLocaleString()} Points*\n\n` +
               `----------------------------------\n` +
-              `💡 *Points တွေကို ဘယ်လိုအသုံးချမလဲ?*\n\n` +
-              `🅰️ *နည်းလမ်း (A) - တိုက်ရိုက်လျှော့စျေး*\n` +
-              `အမှတ် ၃၀,၀၀0 နှင့်အထက် ရှိပါက စိန်ဝယ်ယူသည့်အခါ ငွေသားအဖြစ် တိုက်ရိုက်ခုနှိမ်ပြီး လျှော့စျေး ရယူနိုင်ပါသည်။\n\n` +
-              `🅱️ *နည်းလမ်း (B) - Weekly Pass အလကားလဲယူခြင်း*\n` +
-              `အမှတ် ၆၅၀,၀၀၀ ပြည့်ပါက အောက်ပါ "🎁 Weekly Pass လဲလှယ်မည်" ခလုတ်ကို နှိပ်ပြီး လုံးဝ (Free) လဲလှယ်နိုင်ပါသည်။\n\n` +
+              `💡 *Points များကို ဘယ်လို အသုံးချမလဲ?*\n\n` +
+              `🅰️ *5% Discount Coupon လဲလှယ်ခြင်း*\n` +
+              `အမှတ် *၅,၀၀၀ Points* ပြည့်ပါက နောက်တစ်ခေါက် စိန်ဝယ်ယူမှုအတွက် 5% လျှော့ဈေးကူပွန် လဲလှယ်နိုင်ပါသည်။\n\n` +
+              `🅱️ *Weekly Pass အလကားလဲယူခြင်း*\n` +
+              `အမှတ် *၃၀,၀၀၀ Points* ပြည့်ပါက အခမဲ့ Weekly Pass (၁) ခု လဲလှယ်နိုင်ပါသည်။\n\n` +
               `🔗 *အမှတ်များများရအောင် ဘယ်လိုလုပ်မလဲ?*\n` +
-              `လူကြီးမင်း၏ ကိုယ်ပိုင် Referral Link အား သူငယ်ချင်းများထံ မျှဝေပြီး သူငယ်ချင်းများ ဝယ်ယူသည့် ပမာဏတိုင်းမှ အမှတ် ၁၀% ကို အခမဲ့ ရယူနိုင်ပါသည်။\n` +
+              `လူကြီးမင်း၏ ကိုယ်ပိုင် Referral Link အား သူငယ်ချင်းများထံ မျှဝေပါ။ သူငယ်ချင်းများ ဝယ်ယူသည့် ပမာဏတိုင်းမှ အမှတ် ၁၀% ကို အခမဲ့ ရရှိပါမည်။\n` +
               `👉 ကိုယ်ပိုင် Link: \`t.me/${ctx.botInfo.username}?start=ref_${uid}\``;
 
     const inlineButtons = [];
-    if (user.points >= 650000) {
-        inlineButtons.push([Markup.button.callback('🎁 Weekly Pass အလကား လဲလှယ်မည်', 'claim_wp_points')]);
+    if (user.points >= 5000) {
+        inlineButtons.push([Markup.button.callback('🎟️ 5% Discount Coupon လဲမည် (-5000 Pts)', 'claim_coupon_5')]);
+    }
+    if (user.points >= 30000) {
+        inlineButtons.push([Markup.button.callback('🎁 Weekly Pass အလကား လဲလှယ်မည် (-30000 Pts)', 'claim_wp_points')]);
     }
 
     ctx.replyWithMarkdown(msg, inlineButtons.length > 0 ? Markup.inlineKeyboard(inlineButtons) : null);
@@ -180,6 +180,7 @@ bot.hears('💰 My Points (အမှတ်စာရင်း)', checkMiddleware,
 // 6. TOP-UP ENGINE & DISCOUNTS
 // ==========================================
 bot.action(/^buy_(.+)$/, checkMiddleware, async (ctx) => {
+    await ctx.answerCbQuery('🛒 လုပ်ဆောင်နေပါသည်...');
     const key = ctx.match[1];
     const item = PRICES[key];
     const uid = ctx.from.id.toString();
@@ -206,9 +207,13 @@ function askForGameId(ctx) {
     ctx.reply(`📝 ကျေးဇူးပြု၍ လူကြီးမင်း၏ MLBB User ID နှင့် Zone ID အား သေချာစွာ တွဲလျက် ရိုက်ထည့်ပေးပါဗျာ။\n\n📌 ဥပမာပုံစံ - 166049831(2851)`);
 }
 
-bot.action('use_new_id', checkMiddleware, (ctx) => askForGameId(ctx));
+bot.action('use_new_id', checkMiddleware, async (ctx) => {
+    await ctx.answerCbQuery('📝 ID အသစ်ထည့်မည်');
+    askForGameId(ctx);
+});
 
 bot.action('use_saved_id', checkMiddleware, async (ctx) => {
+    await ctx.answerCbQuery('✅ ID ဟောင်းကို အသုံးပြုပါမည်');
     const uid = ctx.from.id.toString();
     const session = userSessions.get(uid);
     const user = await User.findOne({ telegramId: uid });
@@ -247,13 +252,10 @@ bot.on('text', checkMiddleware, async (ctx) => {
 
 async function processDiscountStep(ctx, user, session) {
     const uid = user.telegramId;
-    if (user.points >= 30000) {
-        const burnablePoints = user.points;
-        const discountAmount = Math.floor(burnablePoints / 100);
-        
-        ctx.reply(`💰 လူကြီးမင်းတွင် အမှတ် ${burnablePoints.toLocaleString()} Points (${discountAmount.toLocaleString()} Ks တန်ဖိုး) ရှိနေပါသည်။ \n\nယခုဝယ်ယူမှုတွင် အမှတ်များကို သုံးစွဲပြီး လျှော့စျေး ယူမလားဗျာ?`, Markup.inlineKeyboard([
-            [Markup.button.callback(`✅ ယူမည် (-${discountAmount} Ks)`, 'apply_discount')],
-            [Markup.button.callback('❌ မယူပါ၊ ပုံမှန်စျေးအတိုင်းပဲဝယ်မည်', 'skip_discount')]
+    if (user.points >= 5000) {
+        ctx.reply(`🎟️ လူကြီးမင်းတွင် အမှတ် ${user.points.toLocaleString()} Points ရှိနေပါသည်။ \n\nယခုဝယ်ယူမှုတွင် အမှတ် ၅,၀၀၀ ကို သုံးပြီး 5% လျှော့ဈေး ကူပွန် အသုံးပြုမလားဗျာ?`, Markup.inlineKeyboard([
+            [Markup.button.callback(`✅ ကူပွန်အသုံးပြုမည် (5% OFF)`, 'apply_discount_5')],
+            [Markup.button.callback('❌ မသုံးပါ၊ ပုံမှန်ဈေးအတိုင်းပဲ ဝယ်မည်', 'skip_discount')]
         ]));
     } else {
         session.step = 'AWAITING_RECEIPT';
@@ -262,13 +264,13 @@ async function processDiscountStep(ctx, user, session) {
     }
 }
 
-bot.action('apply_discount', checkMiddleware, async (ctx) => {
+bot.action('apply_discount_5', checkMiddleware, async (ctx) => {
+    await ctx.answerCbQuery('🎟️ ကူပွန် ထည့်သွင်းလိုက်ပါပြီ');
     const uid = ctx.from.id.toString();
     const session = userSessions.get(uid);
-    const user = await User.findOne({ telegramId: uid });
 
-    const discount = Math.floor(user.points / 100);
-    session.pointsToBurn = user.points;
+    const discount = Math.floor(session.basePrice * 0.05); 
+    session.pointsToBurn = 5000;
     session.discountUsed = discount;
     session.finalPrice = Math.max(0, session.basePrice - discount);
     session.step = 'AWAITING_RECEIPT';
@@ -279,6 +281,7 @@ bot.action('apply_discount', checkMiddleware, async (ctx) => {
 });
 
 bot.action('skip_discount', checkMiddleware, async (ctx) => {
+    await ctx.answerCbQuery('❌ ကျော်ဖြတ်ခဲ့ပါသည်');
     const uid = ctx.from.id.toString();
     const session = userSessions.get(uid);
     session.step = 'AWAITING_RECEIPT';
@@ -294,7 +297,7 @@ async function sendPaymentDetails(ctx, session) {
               `🎯 MLBB ID: \`${session.gameId}\`\n`;
               
     if (session.discountUsed > 0) {
-        msg += `🔥 Discount ခုနှိမ်မှု: -${session.discountUsed.toLocaleString()} Ks\n`;
+        msg += `🔥 5% ကူပွန် လျှော့ဈေး: -${session.discountUsed.toLocaleString()} Ks\n`;
     }
     msg += `💰 *လူကြီးမင်းအမှန်တကယ် လွှဲရမည့်ငွေ: ${session.finalPrice.toLocaleString()} Kyats*\n\n` +
            `📌 အောက်ပါ QR Code ကို Scan ဖတ်၍ဖြစ်စေ၊ ဖုန်းနံပါတ်ဖြင့်ဖြစ်စေ ငွေလွှဲနိုင်ပါသည်ဗျာ။\n` +
@@ -303,7 +306,6 @@ async function sendPaymentDetails(ctx, session) {
            `ငွေလွှဲပြီးပါက *ငွေလွှဲပြေစာ Screenshot (ဓာတ်ပုံ)* ကို ဤနေရာသို့ တိုက်ရိုက် ပို့ပေးပါဗျာ။`;
 
     try {
-        // လူကြီးမင်းထံသို့ တကယ့် QR Code ပုံစံဖြင့် တိုက်ရိုက် ပို့ဆောင်ပေးမည်
         await ctx.replyWithPhoto(KPAY_QR_FILE_ID, { caption: msg, parse_mode: 'Markdown' });
     } catch (e) {
         await ctx.replyWithMarkdown(msg);
@@ -357,30 +359,32 @@ bot.on('photo', checkMiddleware, async (ctx) => {
 });
 
 // ==========================================
-// 7. ADMIN TRANS-MATURING & REFERRALS
+// 7. ADMIN OPERATION & REAL REWARDS
 // ==========================================
 bot.action(/^admin_confirm_(\d+)_(.+)$/, async (ctx) => {
     if (ctx.from.id.toString() !== ADMIN_CHAT_ID) return ctx.answerCbQuery('⚠️ No Permission');
+    await ctx.answerCbQuery('⚙️ အော်ဒါအား အတည်ပြုနေပါသည်...');
     const uid = ctx.match[1];
     const orderId = ctx.match[2];
     const session = userSessions.get(uid);
 
-    if (!session || session.orderId !== orderId) return ctx.answerCbQuery('⚠️ System Cache Error', { show_alert: true });
+    if (!session || session.orderId !== orderId) return ctx.reply('⚠️ Cache Error');
 
     await Shop.findOneAndUpdate({}, { $inc: { totalOrders: 1, totalRevenue: session.finalPrice } });
     
-    const user = await User.findOneAndUpdate(
+    await User.findOneAndUpdate(
         { telegramId: uid },
-        { $inc: { points: -session.pointsToBurn }, $set: { hasPurchased: true } },
-        { new: true }
+        { $inc: { points: -session.pointsToBurn }, $set: { hasPurchased: true } }
     );
 
-    const newDirectPoints = session.finalPrice;
-    await User.findOneAndUpdate({ telegramId: uid }, { $inc: { points: newDirectPoints } });
+    // အမြတ်မထိခိုက်စေရန် ငွေ ၁၀ ကျပ်မှ ၁ မှတ် နှုန်းပဲ ပေးတော့မည်
+    const newDirectPoints = Math.floor(session.finalPrice / 10);
+    const user = await User.findOneAndUpdate({ telegramId: uid }, { $inc: { points: newDirectPoints } }, { new: true });
 
     if (user.referredBy) {
         const referrer = await User.findOne({ telegramId: user.referredBy });
         if (referrer && referrer.hasPurchased) {
+            // လူညွှန်းသူကိုလည်း ဝယ်ယူမှုရဲ့ ၁၀% အမှတ် ပေးမည်
             const referralBonus = Math.floor(session.finalPrice * 0.1); 
             await User.findOneAndUpdate({ telegramId: user.referredBy }, { $inc: { points: referralBonus } });
             try {
@@ -397,23 +401,23 @@ bot.action(/^admin_confirm_(\d+)_(.+)$/, async (ctx) => {
             Markup.inlineKeyboard([[Markup.button.callback('⭐️⭐️⭐️⭐️⭐️ အရမ်းမြန်လို့ သဘောကျတယ်', `rev_5_${orderId}_${uid}`)]])
         );
     } catch (e) {}
-    ctx.answerCbQuery('✅ Confirmed!');
 });
 
 bot.action(/^admin_cancel_(\d+)_(.+)$/, async (ctx) => {
     if (ctx.from.id.toString() !== ADMIN_CHAT_ID) return ctx.answerCbQuery('⚠️ No Permission');
+    await ctx.answerCbQuery('❌ ပယ်ဖျက်လိုက်ပါသည်');
     const uid = ctx.match[1];
     const orderId = ctx.match[2];
 
     ctx.editMessageCaption(`❌ *ဤအော်ဒါကို ပယ်ဖျက်လိုက်ပါပြီ။* \n🆔 Order: #${orderId}`, { parse_mode: 'Markdown' }).catch(() => {});
     try {
-        await bot.telegram.sendMessage(uid, `❌ လူကြီးမင်း၏ အော်ဒါနံပါတ် *#${orderId}* သည် Ngwe Lwe Prasar Ma Hman Chin ကြောင့် ပယ်ဖျက်ခြင်း ခံရပါသည်ဗျာ။`);
+        await bot.telegram.sendMessage(uid, `❌ လူကြီးမင်း၏ အော်ဒါနံပါတ် *#${orderId}* သည် ငွေလွှဲပြေစာ မမှန်ကန်ခြင်းကြောင့် ပယ်ဖျက်ခြင်း ခံရပါသည်ဗျာ။`);
     } catch (e) {}
     userSessions.delete(uid);
-    ctx.answerCbQuery('❌ Cancelled');
 });
 
 bot.action(/^rev_5_(.+)_(.+)$/, async (ctx) => {
+    await ctx.answerCbQuery('❤️ Review ကျေးဇူးတင်ပါတယ်ဗျာ');
     const orderId = ctx.match[1];
     const uid = ctx.match[2];
     ctx.editMessageText('❤️ Review ပေးပေးတဲ့အတွက် ကျေးဇူးအထူးတင်ပါတယ်ဗျာ။').catch(() => {});
@@ -421,21 +425,45 @@ bot.action(/^rev_5_(.+)_(.+)$/, async (ctx) => {
     const reviewPost = `✨ *CUSTOMER REVIEW | SUCCESSFUL ORDER* ✨\n\n📦 Order ID: \`#${orderId}\`\n💎 Status: *Successfully Transferred*\nထင်မြင်ချက်: ⭐️⭐️⭐️⭐️⭐️ *အရမ်းမြန်ပြီး စိတ်ချရတယ်ဗျာ*\n\n🤖 ဝန်ဆောင်မှုရယူရန်: @${ctx.botInfo.username}`;
     try {
         await bot.telegram.sendMessage(CHANNEL_USERNAME, reviewPost, { parse_mode: 'Markdown' });
-    } catch (e) {}
+    } catch (e) { console.error('Review Post to Channel Error:', e); }
     userSessions.delete(uid);
 });
 
+// Weekly Pass Point Redemption
 bot.action('claim_wp_points', async (ctx) => {
+    await ctx.answerCbQuery('🎁 တောင်းဆိုနေပါသည်...');
     const uid = ctx.from.id.toString();
     const user = await User.findOne({ telegramId: uid });
-    if (user.points < 650000) return ctx.answerCbQuery('⚠️ အမှတ်မလုံလောက်ပါ။', { show_alert: true });
+    if (user.points < 30000) return ctx.reply('⚠️ အမှတ်မလုံလောက်ပါ။');
 
-    await User.findOneAndUpdate({ telegramId: uid }, { $inc: { points: -650000 } });
+    await User.findOneAndUpdate({ telegramId: uid }, { $inc: { points: -30000 } });
     ctx.editMessageText('🎁 Weekly Pass လဲလှယ်မှု အချက်အလက်များကို Admin ထံ ပေးပို့လိုက်ပါပြီ။ တာဝန်ခံမှ မကြာမီ ဖြည့်သွင်းပေးပါမည်ဗျာ။').catch(() => {});
 
     try {
-        await bot.telegram.sendMessage(ADMIN_CHAT_ID, `🎁 *POINT SHOP - WEEKLY PASS* 🎁\n\n👤 ဝယ်ယူသူ: [${ctx.from.first_name}](tg://user?id=${uid})\n🆔 Game ID ဟောင်း: \`${user.savedGameId || 'မရှိသေးပါ'}\`\n\n_ဤအကောင့်အား စစ်ဆေးပြီး Weekly Pass အခမဲ့ ဖြည့်ပေးပါရန်_`);
+        await bot.telegram.sendMessage(ADMIN_CHAT_ID, 
+            `🎁 *POINT SHOP - WEEKLY PASS CLAIM* 🎁\n\n👤 ဝယ်ယူသူ: [${ctx.from.first_name}](tg://user?id=${uid})\n🆔 MLBB ID: \`${user.savedGameId || 'မရှိသေးပါ'}\`\n\n_စစ်ဆေးပြီးပါက အောက်က ခလုတ်ကိုနှိပ်၍ ဖြည့်သွင်းပေးပြီးကြောင်း အကြောင်းကြားပါ_`,
+            Markup.inlineKeyboard([[Markup.button.callback('✅ ထည့်ပေးပြီးပြီ (Done)', `wp_done_${uid}`)]])
+        );
     } catch (e) {}
+});
+
+// Admin side Button for Free Weekly Pass Delivery Notification
+bot.action(/^wp_done_(\d+)$/, async (ctx) => {
+    if (ctx.from.id.toString() !== ADMIN_CHAT_ID) return ctx.answerCbQuery('⚠️ No Permission');
+    await ctx.answerCbQuery('🎁 အကြောင်းကြားစာ ပို့လိုက်ပါပြီ');
+    const userUid = ctx.match[1];
+
+    ctx.editMessageText('✅ Weekly Pass အခမဲ့လဲလှယ်ပေးမှု အောင်မြင်ပြီးကြောင်း အသုံးပြုသူထံ စာပို့ပြီးပါပြီ။').catch(() => {});
+    try {
+        await bot.telegram.sendMessage(userUid, `🎁 Admin မှ လူကြီးမင်း အမှတ်များဖြင့် လဲလှယ်ထားသော *Weekly Pass* အား အကောင့်ထဲသို့ အောင်မြင်စွာ ထည့်သွင်းပေးပြီးပါပြီဗျာ။ ကျေးဇူးတင်ပါတယ်!`);
+    } catch (e) {}
+});
+
+bot.action('claim_coupon_5', async (ctx) => {
+    await ctx.answerCbQuery('🎟️ ကူပွန်လဲလှယ်မှု အောင်မြင်သည်');
+    const uid = ctx.from.id.toString();
+    await User.findOneAndUpdate({ telegramId: uid }, { $inc: { points: -5000 } });
+    ctx.editMessageText('🎟️ 5% Discount Coupon အား အောင်မြင်စွာ လဲလှယ်လိုက်ပါပြီ။ နောက်တစ်ကြိမ် စိန်ဝယ်ယူသည့်အခါ System မှ Auto လျှော့ပေးသွားမည် ဖြစ်ပါသည်ဗျာ။').catch(() => {});
 });
 
 // ==========================================
@@ -460,14 +488,14 @@ function askConfirmBroadcast(ctx, text, photoId) {
     }
 }
 
-bot.action('bc_cancel', (ctx) => {
-    if (ctx.from.id.toString() !== ADMIN_CHAT_ID) return;
+bot.action('bc_cancel', async (ctx) => {
+    await ctx.answerCbQuery('❌ ဖျက်သိမ်းလိုက်ပါသည်');
     adminBroadcastState = {};
     ctx.editMessageText('❌ ကြော်ငြာအား ဖျက်သိမ်းလိုက်ပါပြီ။').catch(() => {});
 });
 
 bot.action('bc_confirm', async (ctx) => {
-    if (ctx.from.id.toString() !== ADMIN_CHAT_ID) return;
+    await ctx.answerCbQuery('🚀 စတင်ပို့ဆောင်နေပါပြီ');
     ctx.editMessageText('🚀 ကြော်ငြာများကို လူတိုင်းထံသို့ စတင် ပို့ဆောင်နေပါပြီ...').catch(() => {});
 
     const allUsers = await User.find({});
@@ -505,18 +533,17 @@ bot.hears('🏪 ဆိုင် ဖွင့်/ပိတ် Panel', async (ctx)
 });
 
 bot.action('shop_open', async (ctx) => {
-    if (ctx.from.id.toString() !== ADMIN_CHAT_ID) return;
+    await ctx.answerCbQuery('🟢 ဆိုင်ဖွင့်လှစ်လိုက်ပါပြီ');
     await Shop.findOneAndUpdate({}, { shopOpen: true });
     ctx.editMessageText('🏪 ဆိုင်အခြေအနေအား [ 🟢 ဖွင့်လှစ်သည် ] သို့ ပြောင်းလဲလိုက်ပါပြီ။').catch(() => {});
 });
 
 bot.action('shop_close', async (ctx) => {
-    if (ctx.from.id.toString() !== ADMIN_CHAT_ID) return;
+    await ctx.answerCbQuery('🔴 ဆိုင်ပိတ်သိမ်းလိုက်ပါပြီ');
     await Shop.findOneAndUpdate({}, { shopOpen: false });
-    ctx.editMessageText('🏪 ဆိုင်အခြေအနေအား [ 🔴 ปိတ်သိမ်းသည် ] သို့ ပြောင်းလဲလိုက်ပါပြီ။').catch(() => {});
+    ctx.editMessageText('🏪 ဆိုင်အခြေအနေအား [ 🔴 ပိတ်သိမ်းသည် ] သို့ ပြောင်းလဲလိုက်ပါပြီ။').catch(() => {});
 });
 
-// Web Server for Render
 const server = http.createServer((req, res) => { res.writeHead(200); res.end('Aura Digital Premium Engine is Running perfectly.'); });
 server.listen(process.env.PORT || 3000, () => {
     bot.launch().then(() => console.log('🚀 Aura Digital Ultimate System Online!'));
