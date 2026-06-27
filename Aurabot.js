@@ -10,12 +10,12 @@ const ADMIN_CHAT_ID = '7534742589';
 const ADMIN_USERNAME = '@Wunna2232003';
 const CHANNEL_USERNAME = '@AuraDigitalPremium';
 
-// ညီလေးပေးထားသော MongoDB Atlas Cloud လင့်ခ်အား ကုဒ်ထဲတွင် တိုက်ရိုက်ချိတ်ဆက်ပေးထားပါသည်
+// MongoDB Cloud Production Database Link
 const MONGO_URI = 'mongodb+srv://eaglewind22_db:2232003wunna@cluster0.qqgs4ef.mongodb.net/aura_digital?retryWrites=true&w=majority&appName=Cluster0';
 
-// Fallback Default File IDs (ညီလေး ပုံပို့လို့ ရလာမယ့် ID တွေကို ဒီနေရာမှာ လဲလှယ်နိုင်ပါတယ်)
-let KPAY_QR_FILE_ID = 'AgACAgIAAxkBAAM...'; 
-let WAVEMONEY_QR_FILE_ID = 'AgACAgIAAxkBAAM...';
+// 🎯 ညီလေး ပို့ပေးထားသော QR File IDs များကို အစားထိုးထည့်သွင်းပေးထားပါသည်
+const KPAY_QR_FILE_ID = 'AgACAgUAAxkBAAPFakA6PlHwqkOWeaqurTgoBIpMAdEAAkMRaxvFEgFWSpVMAsTjLFkBAAMCAAN5AAM8BA'; 
+const WAVEMONEY_QR_FILE_ID = 'AgACAgUAAxkBAAO_akAykNVJr4YRpqWoTds2ZQbHmYwAAkARaxvFEgFWi_78b-d5oEYBAAMCAAN4AAM8BA';
 
 mongoose.connect(MONGO_URI)
     .then(() => console.log('🟢 MongoDB Connected Successfully!'))
@@ -108,7 +108,7 @@ const adminMainMenu = Markup.keyboard([
 function getMainMenu(uid) { return uid === ADMIN_CHAT_ID ? adminMainMenu : userMainMenu; }
 
 // ==========================================
-// 5. CORE BOT BOT LOGIC
+// 5. CORE BOT LOGIC
 // ==========================================
 bot.start(async (ctx) => {
     const uid = ctx.from.id.toString();
@@ -156,7 +156,7 @@ bot.hears('💰 My Points (အမှတ်စာရင်း)', checkMiddleware,
     const cashValue = Math.floor(user.points / 100);
     let msg = `💰 *Aura Digital - လူကြီးမင်း၏ အမှတ်စာရင်း* 💰\n\n` +
               `👤 အသုံးပြုသူ: *${ctx.from.first_name}*\n` +
-              `🎯 လက်ရှိပိုင်ဆိုင်သော အမှတ်: *${user.points.toLocaleString()} Points*\n` +
+              `🎯 : *${user.points.toLocaleString()} Points*\n` +
               `(ငွေသားတန်ဖိုးအားဖြင့် = *${cashValue.toLocaleString()} Ks*)\n\n` +
               `----------------------------------\n` +
               `💡 *Points တွေကို ဘယ်လိုအသုံးချမလဲ?*\n\n` +
@@ -289,7 +289,7 @@ bot.action('skip_discount', checkMiddleware, async (ctx) => {
 });
 
 async function sendPaymentDetails(ctx, session) {
-    let msg = `💵 *AURA DIGITAL - Ngwe Pay Chay Mhu* 💵\n\n` +
+    let msg = `💵 *AURA DIGITAL - ငွေပေးချေမှုစနစ်* 💵\n\n` +
               `🎮 ပစ္စည်း: *${session.item}*\n` +
               `🎯 MLBB ID: \`${session.gameId}\`\n`;
               
@@ -297,24 +297,23 @@ async function sendPaymentDetails(ctx, session) {
         msg += `🔥 Discount ခုနှိမ်မှု: -${session.discountUsed.toLocaleString()} Ks\n`;
     }
     msg += `💰 *လူကြီးမင်းအမှန်တကယ် လွှဲရမည့်ငွေ: ${session.finalPrice.toLocaleString()} Kyats*\n\n` +
-           `📌 အောက်ပါ QR Code များအား ဓာတ်ပုံသိမ်းပြီး Scan ဖတ်၍ဖြစ်စေ၊ ဖုန်းနံပါတ်ဖြင့်ဖြစ်စေ Ngwe Lwe Naing Par Tel.\n` +
-           `• 📱 KPay: \`09692272242\`\n` +
-           `• 🌊 WaveMoney: \`09400266700\`\n\n` +
+           `📌 အောက်ပါ QR Code ကို Scan ဖတ်၍ဖြစ်စေ၊ ဖုန်းနံပါတ်ဖြင့်ဖြစ်စေ ငွေလွှဲနိုင်ပါသည်ဗျာ။\n` +
+           `• 📱 KPay: \`09692272242\` (ဒေါ်အေးအေးမြင့်)\n` +
+           `• 🌊 WaveMoney: \`09400266700\` (ဒေါ်အေးအေးမြင့်)\n\n` +
            `ငွေလွှဲပြီးပါက *ငွေလွှဲပြေစာ Screenshot (ဓာတ်ပုံ)* ကို ဤနေရာသို့ တိုက်ရိုက် ပို့ပေးပါဗျာ။`;
 
     try {
+        // လူကြီးမင်းထံသို့ တကယ့် QR Code ပုံစံဖြင့် တိုက်ရိုက် ပို့ဆောင်ပေးမည်
         await ctx.replyWithPhoto(KPAY_QR_FILE_ID, { caption: msg, parse_mode: 'Markdown' });
     } catch (e) {
         await ctx.replyWithMarkdown(msg);
     }
 }
 
-// Photo Catcher (ငွေလွှဲပြေစာ သို့မဟုတ် File ID ထုတ်ပေးသည့်စနစ်)
 bot.on('photo', checkMiddleware, async (ctx) => {
     const uid = ctx.from.id.toString();
     const photoId = ctx.message.photo[ctx.message.photo.length - 1].file_id;
 
-    // 💡 [အလွယ်ဆုံးနည်းလမ်း] ညီလေး QR ပုံပို့လိုက်တာနဲ့ File ID အော်တိုပြန်ပြပေးမည့်စနစ်
     if (uid === ADMIN_CHAT_ID && !userSessions.has(uid) && adminBroadcastState.step !== 'AWAITING_MSG') {
         return ctx.reply(`🖼️ လူကြီးမင်း ပို့လိုက်သော ပုံ၏ File ID မှာ အောက်ပါအတိုင်း ဖြစ်ပါသည်ဗျာ - \n\n\`${photoId}\``, { parse_mode: 'Markdown' });
     }
@@ -379,7 +378,6 @@ bot.action(/^admin_confirm_(\d+)_(.+)$/, async (ctx) => {
     const newDirectPoints = session.finalPrice;
     await User.findOneAndUpdate({ telegramId: uid }, { $inc: { points: newDirectPoints } });
 
-    // တင်းကျပ်သော Referral Rule (ညွှန်းသူကိုယ်တိုင် ဝယ်ဖူးမှ Points ရမည်)
     if (user.referredBy) {
         const referrer = await User.findOne({ telegramId: user.referredBy });
         if (referrer && referrer.hasPurchased) {
@@ -409,7 +407,7 @@ bot.action(/^admin_cancel_(\d+)_(.+)$/, async (ctx) => {
 
     ctx.editMessageCaption(`❌ *ဤအော်ဒါကို ပယ်ဖျက်လိုက်ပါပြီ။* \n🆔 Order: #${orderId}`, { parse_mode: 'Markdown' }).catch(() => {});
     try {
-        await bot.telegram.sendMessage(uid, `❌ လူကြီးမင်း၏ အော်ဒါနံပါတ် *#${orderId}* သည် ငွေလွှဲပြေစာ မမှန်ကန်ခြင်း (သို့မဟုတ်) အချက်အလက်မှားယွင်းခြင်းကြောင့် ပယ်ဖျက်ခြင်း ခံရပါသည်ဗျာ။`);
+        await bot.telegram.sendMessage(uid, `❌ လူကြီးမင်း၏ အော်ဒါနံပါတ် *#${orderId}* သည် Ngwe Lwe Prasar Ma Hman Chin ကြောင့် ပယ်ဖျက်ခြင်း ခံရပါသည်ဗျာ။`);
     } catch (e) {}
     userSessions.delete(uid);
     ctx.answerCbQuery('❌ Cancelled');
@@ -436,7 +434,7 @@ bot.action('claim_wp_points', async (ctx) => {
     ctx.editMessageText('🎁 Weekly Pass လဲလှယ်မှု အချက်အလက်များကို Admin ထံ ပေးပို့လိုက်ပါပြီ။ တာဝန်ခံမှ မကြာမီ ဖြည့်သွင်းပေးပါမည်ဗျာ။').catch(() => {});
 
     try {
-        await bot.telegram.sendMessage(ADMIN_CHAT_ID, `🎁 *POINT SHOP - WEEKLY PASS LEVELLING* 🎁\n\n👤 ဝယ်ယူသူ: [${ctx.from.first_name}](tg://user?id=${uid})\n🆔 Game ID ဟောင်း: \`${user.savedGameId || 'မရှိသေးပါ'}\`\n\n_ဤအကောင့်အား စစ်ဆေးပြီး Weekly Pass အခမဲ့ ဖြည့်ပေးပါရန်_`);
+        await bot.telegram.sendMessage(ADMIN_CHAT_ID, `🎁 *POINT SHOP - WEEKLY PASS* 🎁\n\n👤 ဝယ်ယူသူ: [${ctx.from.first_name}](tg://user?id=${uid})\n🆔 Game ID ဟောင်း: \`${user.savedGameId || 'မရှိသေးပါ'}\`\n\n_ဤအကောင့်အား စစ်ဆေးပြီး Weekly Pass အခမဲ့ ဖြည့်ပေးပါရန်_`);
     } catch (e) {}
 });
 
@@ -515,7 +513,7 @@ bot.action('shop_open', async (ctx) => {
 bot.action('shop_close', async (ctx) => {
     if (ctx.from.id.toString() !== ADMIN_CHAT_ID) return;
     await Shop.findOneAndUpdate({}, { shopOpen: false });
-    ctx.editMessageText('🏪 ဆိုင်အခြေအနေအား [ 🔴 ပိတ်သိမ်းသည် ] သို့ ပြောင်းလဲလိုက်ပါပြီ။').catch(() => {});
+    ctx.editMessageText('🏪 ဆိုင်အခြေအနေအား [ 🔴 ปိတ်သိမ်းသည် ] သို့ ပြောင်းလဲလိုက်ပါပြီ။').catch(() => {});
 });
 
 // Web Server for Render
