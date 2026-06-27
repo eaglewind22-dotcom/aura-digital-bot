@@ -1,4 +1,3 @@
-require('dotenv').config();
 const { Telegraf, Markup } = require('telegraf');
 const mongoose = require('mongoose');
 const http = require('http');
