@@ -61,11 +61,6 @@ const User = mongoose.model('User', UserSchema);
 const Order = mongoose.model('Order', OrderSchema);
 const Shop = mongoose.model('Shop', ShopSchema);
 
-async function initShop() { 
-    try { if (await Shop.countDocuments() === 0) await Shop.create({}); } catch(e) { console.error(e); }
-}
-initShop();
-
 const ITEM_NAMES = { 'mlbb_wp': '🔥 Weekly Pass', 'mlbb_tp': '🤩 Twilight Pass', 'mlbb_86': '💎 Dia 86', 'mlbb_172': '💎 Dia 172' };
 const ITEM_COUPONS = { 'mlbb_wp': '3%', 'mlbb_tp': '5%', 'mlbb_86': '3%', 'mlbb_172': '5%' }; 
 
@@ -98,14 +93,20 @@ async function checkForcedJoinAndShop(ctx, next) {
         const member = await ctx.telegram.getChatMember(CHANNEL_USERNAME, uid);
         if (['left', 'kicked'].includes(member.status)) {
             return ctx.reply(`⚠️ လူကြီးမင်းအနေဖြင့် ကျွန်ုပ်တို့၏ ဝန်ဆောင်မှုများကို အသုံးပြုနိုင်ရန် Aura Digital Channel ကို အရင် Join ပေးရန် လိုအပ်ပါသည်ဗျာ။`,
-                Markup.inlineKeyboard([[Markup.button.url('📢 Channel သို့ဝင်ရန်', `t.me/${CHANNEL_USERNAME.replace('@','')}`)]])
+                Markup.inlineKeyboard([[Markup.button.url('📢 Channel Thို့ဝင်ရန်', `t.me/${CHANNEL_USERNAME.replace('@','')}`)]])
             );
         }
-        const shop = await Shop.findOne();
+        
+        // CRITICAL FIX: Ensure Shop Document Exists dynamically to avoid null readings
+        let shop = await Shop.findOne();
+        if (!shop) {
+            shop = await Shop.create({});
+        }
+        
         if (shop && !shop.shopOpen && ctx.message && ctx.message.text && ctx.message.text.includes('Top-Up')) {
             return ctx.reply('👋 မင်္ဂလာပါဗျာ။ လက်ရှိအချိန်တွင် Aura Digital ဆိုင်ခေတ္တ ပိတ်ထားပါသဖြင့် အော်ဒါတင်၍ မရနိုင်သေးပါဗျာ။');
         }
-    } catch (e) {}
+    } catch (e) { console.error('Error in Middleware:', e); }
     return next();
 }
 
@@ -133,7 +134,7 @@ function setSessionTimeout(uid) {
         const current = userSessions.get(uid);
         if (current && current.step && current.step !== 'COMPLETED') {
             userSessions.delete(uid);
-            bot.telegram.sendMessage(uid, '⏳ လူကြီးမင်းသည် အချိန်ကြာမြင့်စွာ တုံ့ပြန်မှုမရှိသဖြင့် ဝယ်ယူမှုလုပ်ငန်းစဉ်အား Сနစ်မှ Auto ဖျက်သိမ်းလိုက်ပါပြီဗျာ။').catch(()=>{});
+            bot.telegram.sendMessage(uid, '⏳ လူကြီးမင်းသည် အချိန်ကြာမြင့်စွာ တုံ့ပြန်မှုမရှိသဖြင့် ဝယ်ယူမှုလုပ်ငန်းစဉ်အား စနစ်မှ Auto ဖျက်သိမ်းလိုက်ပါပြီဗျာ။').catch(()=>{});
         }
     }, 15 * 60 * 1000); 
     return timeoutRef;
@@ -158,7 +159,7 @@ bot.start(checkForcedJoinAndShop, async (ctx) => {
 bot.hears('🎮 မိတ်ဆွေဖျော်ဖြေရေး (Top-Up Store)', checkForcedJoinAndShop, (ctx) => {
     handleMenuInterruption(ctx, 'STORE', async () => {
         try {
-            const shop = await Shop.findOne();
+            let shop = await Shop.findOne() || await Shop.create({});
             const kb = Object.keys(ITEM_NAMES).map(k => [Markup.button.callback(`🔹 ${ITEM_NAMES[k]} - ${(shop.prices.get(k) || 0).toLocaleString()} Ks`, `buy_${k}`)]);
             kb.push([Markup.button.callback('❌ ဖျက်သိမ်းမည်', 'cancel_flow')]);
             ctx.reply('💎 စိန်နှင့် ပရီမီယံ ပစ္စည်းစာရင်းများ -', Markup.inlineKeyboard(kb));
@@ -237,7 +238,7 @@ bot.action(/^buy_(.+)$/, checkForcedJoinAndShop, async (ctx) => {
     try {
         await ctx.answerCbQuery();
         const k = ctx.match[1]; 
-        const shop = await Shop.findOne();
+        let shop = await Shop.findOne() || await Shop.create({});
         const uid = ctx.from.id.toString();
         const user = await User.findOne({ telegramId: uid });
 
@@ -339,7 +340,7 @@ bot.action(/^pay_(kpay|wave)$/, async (ctx) => {
         session.paymentMethod = method; session.step = 'AWAITING_RECEIPT';
         userSessions.set(uid, session);
 
-        const shop = await Shop.findOne();
+        let shop = await Shop.findOne() || await Shop.create({});
         if (method === 'kpay') {
             const txt = `💵 *KBZPay ဖြင့် ငွေပေးချေခြင်း* 💵\n\n💰 လွှဲရမည့်ပမာဏ: *${session.finalPrice.toLocaleString()} Ks*\n📱 နံပါတ်: \`${shop.kpayNumber}\`\n👤 အမည်: *${shop.kpayName}*\n\nငွေလွှဲပြီးပါက ပြေစာ (Screenshot) အား ဤနေရာသို့ ပို့ပေးပါဗျာ။`;
             if (shop.kpayQrId) await ctx.replyWithPhoto(shop.kpayQrId, { caption: txt, parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback('❌ ဖျက်သိမ်းမည်', 'cancel_flow')]]) });
@@ -452,7 +453,7 @@ bot.on('photo', checkForcedJoinAndShop, async (ctx) => {
 });
 
 // ==========================================
-// 8. TEXT INPUT ENGINE & TEXT EVENT ROUTER (FIXED POSITION FOR MIDDLEWARE NEXT flow)
+// 8. TEXT INPUT ENGINE & TEXT EVENT ROUTER
 // ==========================================
 bot.on('text', checkForcedJoinAndShop, async (ctx, next) => {
     try {
@@ -466,7 +467,8 @@ bot.on('text', checkForcedJoinAndShop, async (ctx, next) => {
             if (aState.step === 'CFG_PAY_NAME') { aState.name = input; aState.step = 'AWAITING_QR_PHOTO'; adminState.set(uid, aState); return ctx.reply('⚙️ နောက်ဆုံးအဆင့်အနေဖြင့် အသုံးပြုမည့် QR Code ဓာတ်ပုံအား ပို့ပေးပါဗျာ။'); }
             if (aState.step === 'PRICE_NEW_AMT') { aState.price = parseInt(input); aState.step = 'COST_NEW_AMT'; adminState.set(uid, aState); return ctx.reply('⚙️ ရောင်းဈေး သိမ်းဆည်းပြီးပါပြီ။ ဆက်လက်ပြီး ရင်းဈေး (Cost) ကို ဂဏန်းသီးသန့် ရိုက်ပို့ပေးပါဗျာ။'); }
             if (aState.step === 'COST_NEW_AMT') {
-                const s = await Shop.findOne(); s.prices.set(aState.key, aState.price); s.costs.set(aState.key, parseInt(input));
+                let s = await Shop.findOne() || await Shop.create({});
+                s.prices.set(aState.key, aState.price); s.costs.set(aState.key, parseInt(input));
                 await s.save(); ctx.reply('✅ ဈေးနှုန်းနှင့် ရင်းဈေး ပြင်ဆင်မှု အောင်မြင်ပါသည်။', adminMenu); adminState.delete(uid); return;
             }
             if (aState.step === 'REQ_BALANCE_AMT') {
@@ -478,7 +480,7 @@ bot.on('text', checkForcedJoinAndShop, async (ctx, next) => {
                     ...Markup.inlineKeyboard([[Markup.button.callback('💵 လက်ကျန်ငွေလွှဲပြေစာ ပို့မည်', `send_bal_${oid}`)], [Markup.button.callback('❌ ဤအော်ဒါအား ဖျက်သိမ်းမည်', `user_cancel_order_${oid}`)]])
                 }).catch(()=>{}); return;
             }
-            if (aState.step === 'PROMO_CODE') { aState.code = input.toUpperCase(); aState.step = 'PROMO_POINTS'; adminState.set(uid, aState); return ctx.reply('🎟️ ယခု Promo Code တွင် ထည့်သွင်းမည့် စုစုပေါင်း Pool Points ပမာဏကို ရိုက်ထည့်ပါ (ဥပမာ - 50000)။'); }
+            if (aState.step === 'PROMO_CODE') { aState.code = input.toUpperCase(); aState.step = 'PROMO_POINTS'; adminState.set(uid, aState); return ctx.reply('🎟️ ယခု Promo Code တွင် ထည့်သွင်းမည့် စုစုပေါင်း Pool Points ပမာကို ရိုက်ထည့်ပါ (ဥပမာ - 50000)။'); }
             if (aState.step === 'PROMO_POINTS') {
                 await Shop.findOneAndUpdate({}, { promo: { code: aState.code, poolPoints: parseInt(input), expiry: new Date(Date.now() + 7*24*60*60*1000), claimedUsers: [] } });
                 ctx.reply(`✅ Promo Code [ ${aState.code} ] အား Points ${input} ဖြင့် အောင်မြင်စွာ ဖန်တီးလိုက်ပါပြီဗျာ။`, adminMenu); adminState.delete(uid); return;
@@ -487,7 +489,7 @@ bot.on('text', checkForcedJoinAndShop, async (ctx, next) => {
 
         if (pState) {
             if (pState.step === 'USER_PROMO_INPUT') {
-                const shop = await Shop.findOne();
+                let shop = await Shop.findOne() || await Shop.create({});
                 if (!shop.promo || shop.promo.code !== input.toUpperCase()) return ctx.reply('❌ ဤပရိုမိုးရှင်းကုဒ် မှားယွင်းနေပါသည်ဗျာ။');
                 if (shop.promo.claimedUsers.includes(uid)) return ctx.reply('⚠️ လူကြီးမင်းသည် ယခုပရိုမိုးရှင်းတွင် ပါဝင်ပြီးဖြစ်ပါသည်ဗျာ။');
                 if (shop.promo.poolPoints <= 50) return ctx.reply('⚠️ စိတ်မကောင်းပါဘူးဗျာ၊ ယခု Promo Code ၏ Point Pool ကုန်ဆုံးသွားပါပြီ။');
@@ -515,7 +517,7 @@ bot.on('text', checkForcedJoinAndShop, async (ctx, next) => {
             return askCouponUsage(ctx, uid, session);
         }
     } catch(e) { console.error(e); }
-    return next(); // CRITICAL FIX: Ensures that if no states are active, the event passes down cleanly to commands/actions!
+    return next(); 
 });
 
 // ==========================================
@@ -524,7 +526,7 @@ bot.on('text', checkForcedJoinAndShop, async (ctx, next) => {
 bot.hears('📊 Dashboard (စာရင်းချုပ်)', async (ctx) => {
     if (!isAdmin(ctx)) return;
     try {
-        const s = await Shop.findOne();
+        let s = await Shop.findOne() || await Shop.create({});
         const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
         const startOfMonth = new Date(); startOfMonth.setDate(1); startOfMonth.setHours(0,0,0,0);
 
@@ -545,13 +547,13 @@ bot.hears('📊 Dashboard (စာရင်းချုပ်)', async (ctx) => {
 
 bot.hears('🏪 ဆိုင် ဖွင့်/ပိတ် Panel', async (ctx) => {
     if (!isAdmin(ctx)) return;
-    const s = await Shop.findOne();
+    let s = await Shop.findOne() || await Shop.create({});
     ctx.reply(`🏪 လက်ရှိဆိုင်အခြေအနေ: ${s.shopOpen ? '🟢 ဖွင့်ထားသည်' : '🔴 ပိတ်ထားသည်'}`, Markup.inlineKeyboard([[Markup.button.callback('🟢 ဖွင့်မည်', 'shop_open'), Markup.button.callback('🔴 ပိတ်မည်', 'shop_close')]]));
 });
 
 bot.hears('💰 လက်ရှိဈေးနှုန်းများကြည့်ရန်', async (ctx) => {
     if (!isAdmin(ctx)) return;
-    const s = await Shop.findOne();
+    let s = await Shop.findOne() || await Shop.create({});
     let msg = `💰 *လက်ရှိ သတ်မှတ်ထားသော စျေးနှုန်းဇယား*\n\n`;
     Object.keys(ITEM_NAMES).forEach(k => { msg += `• *${ITEM_NAMES[k]}*\n  ရောင်းဈေး: ${s.prices.get(k) || 0} Ks | ရင်းဈေး: ${s.costs.get(k) || 0} Ks\n\n`; });
     const kb = Object.keys(ITEM_NAMES).map(k => [Markup.button.callback(`⚙️ ပြင်မည် - ${ITEM_NAMES[k]}`, `eprc_${k}`)]);
@@ -574,7 +576,7 @@ bot.hears('🎟️ Promo Code ထုတ်ရန်', (ctx) => {
 
 bot.hears('⚙️ Promo Code စီမံရန်', async (ctx) => {
     if (!isAdmin(ctx)) return;
-    const s = await Shop.findOne();
+    let s = await Shop.findOne() || await Shop.create({});
     if (!s.promo || !s.promo.code) return ctx.reply('⚠️ စနစ်ထဲတွင် လက်ရှိဖွင့်ထားသော Promo Code မရှိသေးပါဗျာ။');
     ctx.reply(`🎟️ *လက်ရှိ Promo Code အခြေအနေ*\n\nကုဒ်အမည်: ${s.promo.code}\n` + 
               `လက်ကျန် Points: ${s.promo.poolPoints}\n` +
@@ -696,7 +698,7 @@ bot.action(/^cfg_pay_(kpay|wave)$/, async (ctx) => {
 
 bot.action('cfg_pay_save', async (ctx) => {
     try {
-        await ctx.answerCbQuery(); const uid = ctx.from.id.toString(); const s = await Shop.findOne(); const aState = adminState.get(uid);
+        await ctx.answerCbQuery(); const uid = ctx.from.id.toString(); let s = await Shop.findOne() || await Shop.create({}); const aState = adminState.get(uid);
         if (aState.method === 'kpay') { s.kpayNumber = aState.number; s.kpayName = aState.name; s.kpayQrId = aState.photoId; }
         else { s.waveNumber = aState.number; s.waveName = aState.name; s.waveQrId = aState.photoId; }
         await s.save(); ctx.editMessageText('✅ အချက်အလက်သစ်များအားလုံး စနစ်ထဲသို့ အောင်မြင်စွာ အစားထိုး သိမ်းဆည်းလိုက်ပါပြီဗျာ။'); adminState.delete(uid);
@@ -719,6 +721,6 @@ bot.action('del_promo', async (ctx) => { try { await ctx.answerCbQuery(); await 
 const server = http.createServer((req, res) => { res.end('Aura Engine Core is Online.'); });
 server.listen(process.env.PORT || 3000, () => { 
     bot.launch()
-        .then(() => console.log('🚀 Aura Digital Premium Engine is Live with Zero Bugs.'))
+        .then(() => console.log('🚀 Aura Digital Premium Engine is Live with zero null bugs.'))
         .catch(err => console.error('Bot launch failed:', err));
 });
