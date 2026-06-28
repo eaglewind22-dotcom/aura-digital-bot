@@ -8,7 +8,7 @@ const http = require('http');
 const BOT_TOKEN = '8953970980:AAG-8uV8P9ni_vlmXVGdTZfdVrSFHuosX3Y';
 const ADMIN_CHAT_ID = '7534742589'; 
 const ADMIN_USERNAME = '@Wunna2232003';
-const BOT_USERNAME = 'AuraDigitalPremium_Bot'; // Fixed Username Backup
+const BOT_USERNAME = 'AuraDigitalPremium_Bot'; 
 const CHANNEL_USERNAME = '@AuraDigitalPremium'; 
 
 const MONGO_URI = 'mongodb+srv://eaglewind22_db:2232003wunna@cluster0.qqgs4ef.mongodb.net/aura_digital?retryWrites=true&w=majority&appName=Cluster0';
@@ -19,7 +19,7 @@ mongoose.connect(MONGO_URI)
 
 const bot = new Telegraf(BOT_TOKEN);
 
-// Separated Memory States To Avoid Collision (Fixed Concept 2)
+// Separated Memory States To Avoid Collision
 const userSessions = new Map(); 
 const adminState = new Map(); 
 const userPromoState = new Map();
@@ -113,7 +113,6 @@ async function handleMenuInterruption(ctx, targetField, nextFunc) {
     try {
         const uid = ctx.from.id.toString();
         const session = userSessions.get(uid);
-        // Only interrupt if user is actually in an active ordering step (Fixed Concept 3)
         if (session && session.step && !['COMPLETED', 'AWAITING_ID_OPTION'].includes(session.step)) {
             userSessions.set(uid, { ...session, interruptedTo: targetField });
             return ctx.reply(`⚠️ လူကြီးမင်းတွင် ဝယ်ယူလက်စ လုပ်ငန်းစဉ်တစ်ခု ရှိနေပါသေးသည်ဗျာ။ ယခုလုပ်ငန်းစဉ်ကို ဖျက်သိမ်းပြီး Menu သို့သွားမလား သို့မဟုတ် အော်ဒါဆက်တင်မလားဗျာ?`,
@@ -134,7 +133,7 @@ function setSessionTimeout(uid) {
         const current = userSessions.get(uid);
         if (current && current.step && current.step !== 'COMPLETED') {
             userSessions.delete(uid);
-            bot.telegram.sendMessage(uid, '⏳ လူကြီးမင်းသည် အချိန်ကြာမြင့်စွာ တုံ့ပြန်မှုမရှိသဖြင့် ဝယ်ယူမှုလုပ်ငန်းစဉ်အား စနစ်မှ Auto ဖျက်သိမ်းလိုက်ပါပြီဗျာ။').catch(()=>{});
+            bot.telegram.sendMessage(uid, '⏳ လူကြီးမင်းသည် အချိန်ကြာမြင့်စွာ တုံ့ပြန်မှုမရှိသဖြင့် ဝယ်ယူမှုလုပ်ငန်းစဉ်အား Сနစ်မှ Auto ဖျက်သိမ်းလိုက်ပါပြီဗျာ။').catch(()=>{});
         }
     }, 15 * 60 * 1000); 
     return timeoutRef;
@@ -187,7 +186,7 @@ bot.hears('💰 My Points & Coupons', checkForcedJoinAndShop, (ctx) => {
         try {
             const uid = ctx.from.id.toString(); 
             const user = await User.findOne({ telegramId: uid });
-            const botUser = ctx.botInfo ? ctx.botInfo.username : BOT_USERNAME; // Fixed Concept 1
+            const botUser = BOT_USERNAME; 
             let msg = `💰 *Aura Digital - လူကြီးမင်း၏ အမှတ်စာရင်း* 💰\n\n` +
                       `🎯 လက်ရှိအမှတ်: *${user.points.toLocaleString()} Points*\n` +
                       `🎟️ လက်ဝယ်ရှိကူပွန်: *${user.couponsCount || 0} ရွက်*\n\n` +
@@ -323,7 +322,7 @@ bot.action('coupon_no', async (ctx) => {
 function goToPaymentSelection(ctx, uid, session, hasDiscount) {
     if (!session.finalPrice) session.finalPrice = session.basePrice;
     userSessions.set(uid, session);
-    ctx.reply(`💵 ကျသင့်ငွေစာရင်း: *${session.finalPrice.toLocaleString()} Ks* ${hasDiscount ? '(ကူပွန်နှုတ်ပြီး)' : ''}\n\nကျေးဇူးပြု၍ Ngweပေးချေမည့် စနစ်အား ရွေးချယ်ပေးပါဗျာ။`, {
+    ctx.reply(`💵 ကျသင့်ငွေစာရင်း: *${session.finalPrice.toLocaleString()} Ks* ${hasDiscount ? '(ကူပွန်နှုတ်ပြီး)' : ''}\n\nကျေးဇူးပြု၍ ငွေပေးချေမည့် စနစ်အား ရွေးချယ်ပေးပါဗျာ။`, {
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard([
             [Markup.button.callback('🟢 KBZPay ဖြင့်ပေးချေမည်', 'pay_kpay'), Markup.button.callback('🟢 WaveMoney ဖြင့်ပေးချေမည်', 'pay_wave')],
@@ -346,7 +345,7 @@ bot.action(/^pay_(kpay|wave)$/, async (ctx) => {
             if (shop.kpayQrId) await ctx.replyWithPhoto(shop.kpayQrId, { caption: txt, parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback('❌ ဖျက်သိမ်းမည်', 'cancel_flow')]]) });
             else await ctx.replyWithMarkdown(txt, Markup.inlineKeyboard([[Markup.button.callback('❌ ဖျက်သိမ်းမည်', 'cancel_flow')]]));
         } else {
-            const txt = `💵 *WaveMoney ဖြင့် Ngweလွှဲခြင်း* 💵\n\n💰 လွှဲရမည့်ပမာဏ: *${session.finalPrice.toLocaleString()} Ks*\n📱 နံပါတ်: \`${shop.waveNumber}\`\n👤 အမည်: *${shop.waveName}*\n\nငွေလွှဲပြီးပါက ပြေစာ (Screenshot) အား ဤနေရာသို့ ပို့ပေးပါဗျာ။`;
+            const txt = `💵 *WaveMoney ဖြင့် ငွေလွှဲခြင်း* 💵\n\n💰 လွှဲရမည့်ပမာဏ: *${session.finalPrice.toLocaleString()} Ks*\n📱 နံပါတ်: \`${shop.waveNumber}\`\n👤 အမည်: *${shop.waveName}*\n\nငွေလွှဲပြီးပါက ပြေစာ (Screenshot) အား ဤနေရာသို့ ပို့ပေးပါဗျာ။`;
             if (shop.waveQrId) await ctx.replyWithPhoto(shop.waveQrId, { caption: txt, parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback('❌ ဖျက်သိမ်းမည်', 'cancel_flow')]]) });
             else await ctx.replyWithMarkdown(txt, Markup.inlineKeyboard([[Markup.button.callback('❌ ဖျက်သိမ်းမည်', 'cancel_flow')]]));
         }
@@ -381,10 +380,10 @@ bot.action('int_continue', async (ctx) => {
 bot.action('claim_coupon', async (ctx) => {
     try {
         const uid = ctx.from.id.toString(); const user = await User.findOne({ telegramId: uid });
-        if (user.points < 5000) return ctx.answerCbQuery('⚠️ Points ၅,००० မပြည့်သေးပါဗျာ။', { show_alert: true });
+        if (user.points < 5000) return ctx.answerCbQuery('⚠️ Points ၅,၀၀၀ မပြည့်သေးပါဗျာ။', { show_alert: true });
         await User.findOneAndUpdate({ telegramId: uid }, { $inc: { points: -5000, couponsCount: 1 } });
         await ctx.answerCbQuery('🎉 Coupon ရရှိပါပြီ။');
-        ctx.reply('🎟️ Point ၅,၀၀၀ အား ကူပွန် ၁ ရွက်အဖြစ် အောင်မြင်စွာ လဲလှယ်ပြီးပါပြီဗျာ။ ဝယ်ယူချိန်တွင် သုံးနိုင်ပါပြီ။');
+        ctx.reply('🎟️ Point ၅,၀၀၀ အား ကူပွန် ၁ ရွက်အဖြစ် အောင်မြင်စွာ လလဲလှယ်ပြီးပါပြီဗျာ။ ဝယ်ယူချိန်တွင် သုံးနိုင်ပါပြီ။');
     } catch(e) {}
 });
 
@@ -418,7 +417,7 @@ bot.on('photo', checkForcedJoinAndShop, async (ctx) => {
             userSessions.delete(uid); ctx.reply(`🎉 လက်ကျန်ငွေပြေစာအား လက်ခံရရှိပါပြီ။ Admin စစ်ဆေးမှုကို စောင့်ဆိုင်းပေးပါဗျာ။`);
             
             const o = await Order.findOne({ orderId: session.targetOrderId });
-            const details = `🚨 *လက်ကျန်ငွေ ထပ်မံပေးသွင်းလာသော အော်ဒါ* 🚨\n\nID: *#${o.orderId}*\nဂိမ်း ID: \`${o.gameId}\`\n💵 မူလလွှဲငွေ + လက်ကျန်လွှဲငွေ: *${(o.price - o.pendingBalance).toLocaleString()} + ${o.pendingBalance.toLocaleString()} = ${o.price.toLocaleString()} Ks*\n\n(အောက်ပါပုံသည် ဒုတိယအကြိမ် ပို့လာသော လက်ကျန်ပြေစာပုံ ဖြစ်သည်)`;
+            const details = `🚨 *<b>လက်ကျန်ငွေ ထပ်မံပေးသွင်းလာသော အော်ဒါ</b>* 🚨\n\nID: *#${o.orderId}*\nဂိမ်း ID: \`${o.gameId}\`\n💵 မူလလွှဲငွေ + လက်ကျန်လွှဲငွေ: *${(o.price - o.pendingBalance).toLocaleString()} + ${o.pendingBalance.toLocaleString()} = ${o.price.toLocaleString()} Ks*\n\n(အောက်ပါပုံသည် ဒုတိယအကြိမ် ပို့လာသော လက်ကျန်ပြေစာပုံ ဖြစ်သည်)`;
             bot.telegram.sendPhoto(ADMIN_CHAT_ID, fileId, {
                 caption: details, parse_mode: 'Markdown',
                 ...Markup.inlineKeyboard([[Markup.button.callback('✅ Confirm', `acnf_${o.orderId}`), Markup.button.callback('❌ Cancel Options', `acxl_opt_${o.orderId}`)]])
@@ -453,9 +452,9 @@ bot.on('photo', checkForcedJoinAndShop, async (ctx) => {
 });
 
 // ==========================================
-// 8. TEXT INPUT ENGINE (STATE ROUTER)
+// 8. TEXT INPUT ENGINE & TEXT EVENT ROUTER (FIXED POSITION FOR MIDDLEWARE NEXT flow)
 // ==========================================
-bot.on('text', checkForcedJoinAndShop, async (ctx) => {
+bot.on('text', checkForcedJoinAndShop, async (ctx, next) => {
     try {
         const input = ctx.message.text.trim();
         const uid = ctx.from.id.toString();
@@ -479,7 +478,6 @@ bot.on('text', checkForcedJoinAndShop, async (ctx) => {
                     ...Markup.inlineKeyboard([[Markup.button.callback('💵 လက်ကျန်ငွေလွှဲပြေစာ ပို့မည်', `send_bal_${oid}`)], [Markup.button.callback('❌ ဤအော်ဒါအား ဖျက်သိမ်းမည်', `user_cancel_order_${oid}`)]])
                 }).catch(()=>{}); return;
             }
-            // Fixed Concept 4: Admin Promo Creation Workflow
             if (aState.step === 'PROMO_CODE') { aState.code = input.toUpperCase(); aState.step = 'PROMO_POINTS'; adminState.set(uid, aState); return ctx.reply('🎟️ ယခု Promo Code တွင် ထည့်သွင်းမည့် စုစုပေါင်း Pool Points ပမာဏကို ရိုက်ထည့်ပါ (ဥပမာ - 50000)။'); }
             if (aState.step === 'PROMO_POINTS') {
                 await Shop.findOneAndUpdate({}, { promo: { code: aState.code, poolPoints: parseInt(input), expiry: new Date(Date.now() + 7*24*60*60*1000), claimedUsers: [] } });
@@ -487,27 +485,37 @@ bot.on('text', checkForcedJoinAndShop, async (ctx) => {
             }
         }
 
-        // Fixed Concept 2: Safe User Promo Input State
-        if (pState && pState.step === 'USER_PROMO_INPUT') {
-            const shop = await Shop.findOne();
-            if (!shop.promo || shop.promo.code !== input.toUpperCase()) return ctx.reply('❌ ဤပရိုမိုးရှင်းကုဒ် မှားယွင်းနေပါသည်ဗျာ။');
-            if (shop.promo.claimedUsers.includes(uid)) return ctx.reply('⚠️ လူကြီးမင်းသည် ယခုပရိုမိုးရှင်းတွင် ပါဝင်ပြီးဖြစ်ပါသည်ဗျာ။');
-            if (shop.promo.poolPoints <= 50) return ctx.reply('⚠️ စိတ်မကောင်းပါဘူးဗျာ၊ ယခု Promo Code ၏ Point Pool ကုန်ဆုံးသွားပါပြီ။');
-            
-            let wonPoints = Math.floor(50 + Math.random() * 151);
-            await Shop.findOneAndUpdate({}, { $inc: { "promo.poolPoints": -wonPoints }, $push: { "promo.claimedUsers": uid } });
-            await User.findOneAndUpdate({ telegramId: uid }, { $inc: { points: wonPoints } });
-            ctx.reply(`🎉 ဂုဏ်ယူပါတယ်ဗျာ။ Promo Code ကုဒ်မှတစ်ဆင့် Point +${wonPoints} Points ရရှိပါပြီ။`);
-            userPromoState.delete(uid); return;
+        if (pState) {
+            if (pState.step === 'USER_PROMO_INPUT') {
+                const shop = await Shop.findOne();
+                if (!shop.promo || shop.promo.code !== input.toUpperCase()) return ctx.reply('❌ ဤပရိုမိုးရှင်းကုဒ် မှားယွင်းနေပါသည်ဗျာ။');
+                if (shop.promo.claimedUsers.includes(uid)) return ctx.reply('⚠️ လူကြီးမင်းသည် ယခုပရိုမိုးရှင်းတွင် ပါဝင်ပြီးဖြစ်ပါသည်ဗျာ။');
+                if (shop.promo.poolPoints <= 50) return ctx.reply('⚠️ စိတ်မကောင်းပါဘူးဗျာ၊ ယခု Promo Code ၏ Point Pool ကုန်ဆုံးသွားပါပြီ။');
+                
+                let wonPoints = Math.floor(50 + Math.random() * 151);
+                await Shop.findOneAndUpdate({}, { $inc: { "promo.poolPoints": -wonPoints }, $push: { "promo.claimedUsers": uid } });
+                await User.findOneAndUpdate({ telegramId: uid }, { $inc: { points: wonPoints } });
+                ctx.reply(`🎉 ဂုဏ်ယူပါတယ်ဗျာ။ Promo Code ကုဒ်မှတစ်ဆင့် Point +${wonPoints} Points ရရှိပါပြီ။`);
+                userPromoState.delete(uid); return;
+            }
+            if (pState.step === 'USER_RETRY_ID_VAL') {
+                const oid = pState.targetOid;
+                const o = await Order.findOneAndUpdate({ orderId: oid }, { status: 'Pending', gameId: input });
+                userPromoState.delete(uid); ctx.reply('✅ ဂိမ်း ID အား ပြန်လည်ပြင်ဆင်ပြီးပါပြီ။ စစ်ဆေးပေးသွင်းမှုကို စောင့်ဆိုင်းပေးပါဗျာ။');
+                
+                const details = `🚨 *ဂိမ်း ID ပြန်လည်ပြင်ဆင်လာသော အော်ဒါ* 🚨\n\nID: *#${o.orderId}*\nဂိမ်း ID အသစ်: \`${input}\`\n💵 လွှဲငွေ: *${o.price.toLocaleString()} Ks*`;
+                bot.telegram.sendPhoto(ADMIN_CHAT_ID, o.receiptFileId, { caption: details, parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback('✅ Confirm', `acnf_${o.orderId}`), Markup.button.callback('❌ Cancel Options', `acxl_opt_${o.orderId}`)]]) });
+                return;
+            }
         }
 
-        // Fixed Concept 3: Dynamic Order Creation Routing inside Text Event
         const session = userSessions.get(uid);
         if (session && session.step === 'AWAITING_NEW_ID') {
             session.gameId = input; userSessions.set(uid, session);
-            askCouponUsage(ctx, uid, session);
+            return askCouponUsage(ctx, uid, session);
         }
     } catch(e) { console.error(e); }
+    return next(); // CRITICAL FIX: Ensures that if no states are active, the event passes down cleanly to commands/actions!
 });
 
 // ==========================================
@@ -558,7 +566,6 @@ bot.hears('⚙️ အချက်အလက်များ ပြင်ရန်'
     ]));
 });
 
-// Fixed Concept 4: Complete Admin Promo Creation Trigger
 bot.hears('🎟️ Promo Code ထုတ်ရန်', (ctx) => {
     if (!isAdmin(ctx)) return;
     adminState.set(ctx.from.id.toString(), { step: 'PROMO_CODE' });
@@ -569,7 +576,9 @@ bot.hears('⚙️ Promo Code စီမံရန်', async (ctx) => {
     if (!isAdmin(ctx)) return;
     const s = await Shop.findOne();
     if (!s.promo || !s.promo.code) return ctx.reply('⚠️ စနစ်ထဲတွင် လက်ရှိဖွင့်ထားသော Promo Code မရှိသေးပါဗျာ။');
-    ctx.reply(`🎟️ *လက်ရှိ Promo Code အခြေအနေ*\n\nကုဒ်အမည်: ${s.promo.code}\nလက်ကျန် Points: ${s.promo.poolPoints}\nပါဝင်ပြီးသူ: ${s.promo.claimedUsers.length} ယောက်`, 
+    ctx.reply(`🎟️ *လက်ရှိ Promo Code အခြေအနေ*\n\nကုဒ်အမည်: ${s.promo.code}\n` + 
+              `လက်ကျန် Points: ${s.promo.poolPoints}\n` +
+              `ပါဝင်ပြီးသူ: ${s.promo.claimedUsers.length} ယောက်`, 
         Markup.inlineKeyboard([[Markup.button.callback('❌ ကုဒ်အား ဖျက်သိမ်းမည်', 'del_promo')]]));
 });
 
@@ -654,7 +663,7 @@ bot.action(/^cxr_(receipt|id|bal)_(.+)$/, async (ctx) => {
                 ...Markup.inlineKeyboard([[Markup.button.callback('🎮 ဂိမ်း ID အမှန် ပြန်ရိုက်မည်', `send_id_${oid}`)]])
             }).catch(()=>{});
         } else if (type === 'bal') {
-            adminState.set(ctx.from.id.toString(), { step: 'REG_BALANCE_AMT', targetOid: oid });
+            adminState.set(ctx.from.id.toString(), { step: 'REQ_BALANCE_AMT', targetOid: oid });
             ctx.reply(`📝 အော်ဒါ #${oid} အတွက် User ထံမှ တောင်းခံမည့် 'လက်ကျန်ငွေပမာဏ' ကို ဂဏန်းသီးသန့် ရိုက်ထည့်ပေးပါဗျာ။`);
         }
     } catch(e) { console.error(e); }
@@ -705,24 +714,6 @@ bot.action(/^eprc_(.+)$/, async (ctx) => {
 bot.action('shop_open', async (ctx) => { try { await ctx.answerCbQuery(); await Shop.findOneAndUpdate({}, { shopOpen: true }); ctx.editMessageText('🏪 ဆိုင်အား အောင်မြင်စွာ [ဖွင့်လှစ်] လိုက်ပါပြီဗျာ။'); } catch(e){} });
 bot.action('shop_close', async (ctx) => { try { await ctx.answerCbQuery(); await Shop.findOneAndUpdate({}, { shopOpen: false }); ctx.editMessageText('🏪 ဆိုင်အား အောင်မြင်စွာ [ပိတ်သိမ်း] လိုက်ပါပြီဗျာ။'); } catch(e){} });
 bot.action('del_promo', async (ctx) => { try { await ctx.answerCbQuery(); await Shop.findOneAndUpdate({}, { $unset: { promo: "" } }); ctx.editMessageText('✅ လက်ရှိ Promo Code အား စနစ်ထဲမှ အောင်မြင်စွာ ပယ်ဖျက်လိုက်ပါပြီဗျာ။'); } catch(e){} });
-
-// Fixed Concept 3: Dynamic Code Flow Router Integration For Retried IDs (Safely structured at bottom)
-bot.on('text', async (ctx, next) => {
-    try {
-        const uid = ctx.from.id.toString();
-        const pState = userPromoState.get(uid);
-        if (pState && pState.step === 'USER_RETRY_ID_VAL') {
-            const oid = pState.targetOid; const input = ctx.message.text.trim();
-            const o = await Order.findOneAndUpdate({ orderId: oid }, { status: 'Pending', gameId: input });
-            userPromoState.delete(uid); ctx.reply('✅ ဂိမ်း ID အား ပြန်လည်ပြင်ဆင်ပြီးပါပြီ။ စစ်ဆေးပေးသွင်းမှုကို စောင့်ဆိုင်းပေးပါဗျာ။');
-            
-            const details = `🚨 *ဂိမ်း ID ပြန်လည်ပြင်ဆင်လာသော အော်ဒါ* 🚨\n\nID: *#${o.orderId}*\nဂိမ်း ID အသစ်: \`${input}\`\n💵 လွှဲငွေ: *${o.price.toLocaleString()} Ks*`;
-            bot.telegram.sendPhoto(ADMIN_CHAT_ID, o.receiptFileId, { caption: details, parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback('✅ Confirm', `acnf_${o.orderId}`), Markup.button.callback('❌ Cancel Options', `acxl_opt_${o.orderId}`)]]) });
-            return;
-        }
-    } catch(e) { console.error(e); }
-    return next();
-});
 
 // Server Live Verification Routine
 const server = http.createServer((req, res) => { res.end('Aura Engine Core is Online.'); });
