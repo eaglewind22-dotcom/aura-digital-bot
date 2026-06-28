@@ -26,7 +26,7 @@ function isAdmin(ctx) {
 }
 
 // ==========================================
-// 2. SCHEMAS
+// 2. SCHEMAS & MODELS
 // ==========================================
 const UserSchema = new mongoose.Schema({
     telegramId: String, username: String, name: String, savedGameId: String,
@@ -56,12 +56,23 @@ initShop();
 const ITEM_NAMES = { 'mlbb_wp': '🔥 Weekly Pass', 'mlbb_tp': '🤩 Twilight Pass', 'mlbb_86': '💎 Dia 86', 'mlbb_172': '💎 Dia 172' };
 
 // ==========================================
-// 3. KEYBOARDS & BROADCST PREVIEW
+// 3. KEYBOARDS & MIDDLEWARES (SHOP OPEN/CLOSE CHECK)
 // ==========================================
 const userMenu = Markup.keyboard([['🎮 စိန်ဖြည့်ရန် (Top-Up Store)'], ['🎁 Daily Check-In', '💰 My Points & Coupons'], ['📜 ဝယ်ယူမှုမှတ်တမ်း', '💡 အသုံးပြုပုံလမ်းညွှန်'], ['📞 Contact Admin']]).resize();
 const adminMenu = Markup.keyboard([['Dashboard (စာရင်းချုပ်)', 'ဆိုင် ဖွင့်/ပိတ် Panel'], ['ဈေးနှုန်း/ရင်းဈေး ပြင်ရန်', 'User Point ပြင်ရန်'], ['Promo Code အသစ်ထုတ်ရန်', '⚙️ Promo Code ပြန်ပြင်ရန်'], ['ကြော်ငြာစာ ပို့ရန်']]).resize();
 
 function getMainMenu(ctx) { return isAdmin(ctx) ? adminMenu : userMenu; }
+
+// 🏪 ဆိုင်ဖွင့်/ပိတ် နှင့် အသုံးပြုခွင့် စစ်ဆေးရန် ပင်မ Middleware
+async function checkMiddleware(ctx, next) {
+    if (isAdmin(ctx)) return next(); 
+    
+    const shop = await Shop.findOne();
+    if (shop && !shop.shopOpen) {
+        return ctx.reply('👋 မင်္ဂလာပါဗျာ။ လက်ရှိအချိန်တွင် Aura Digital ဆိုင်ခေတ္တ ပိတ်ထားပါသဖြင့် အော်ဒါတင်၍ ရဦးမည်မဟုတ်ပါဗျာ။');
+    }
+    return next();
+}
 
 function askConfirmBroadcast(ctx, text, photoId) {
     const btns = Markup.inlineKeyboard([[Markup.button.callback('🚀 အခုပို့မည်', 'bc_confirm'), Markup.button.callback('❌ ဖျက်သိမ်းမည်', 'bc_cancel')]]);
@@ -71,7 +82,7 @@ function askConfirmBroadcast(ctx, text, photoId) {
 }
 
 // ==========================================
-// 4. CORE ENGINE & TEXT HEARS
+// 4. ADMIN & USER TEXT COMMANDS
 // ==========================================
 bot.start(async (ctx) => {
     const uid = ctx.from.id.toString(); userSessions.delete(uid);
@@ -93,13 +104,19 @@ bot.hears(/Dashboard/i, async (ctx) => {
 bot.hears(/ဆိုင် ဖွင့်\/ပိတ်/i, async (ctx) => {
     if (!isAdmin(ctx)) return;
     const s = await Shop.findOne();
-    ctx.reply(`🏪 လက်ရှိ: ${s.shopOpen ? '🟢 ဖွင့်ထားသည်' : '🔴 ပိတ်ထားသည်'}`, Markup.inlineKeyboard([[Markup.button.callback('🟢 ဖွင့်မည်', 'shop_open'), Markup.button.callback('🔴 ပိတ်မည်', 'shop_close')]]));
+    ctx.reply(`🏪 လက်ရှိဆိုင်အခြေအနေ: ${s.shopOpen ? '🟢 ဖွင့်ထားသည်' : '🔴 ပိတ်ထားသည်'}`, Markup.inlineKeyboard([[Markup.button.callback('🟢 ဖွင့်မည်', 'shop_open'), Markup.button.callback('🔴 ပိတ်မည်', 'shop_close')]]));
 });
 
 bot.hears(/ဈေးနှုန်း/i, (ctx) => {
     if (!isAdmin(ctx)) return;
     const kb = Object.keys(ITEM_NAMES).map(k => [Markup.button.callback(ITEM_NAMES[k], `eprc_${k}`)]);
     ctx.reply('🔧 ပြင်ဆင်လိုသည့် Item ရွေးပါ -', Markup.inlineKeyboard(kb));
+});
+
+bot.hears('User Point ပြင်ရန်', (ctx) => {
+    if (!isAdmin(ctx)) return;
+    adminActionState = { step: 'POINT_USER_ID' };
+    ctx.reply('📝 အမှတ်ပြင်လိုသော User ၏ Telegram ID (ဂဏန်းသီးသန့်) ကို ရိုက်ပို့ပေးပါဗျာ။');
 });
 
 bot.hears(/ကြော်ငြာစာ/i, (ctx) => {
@@ -112,7 +129,6 @@ bot.hears('Promo Code အသစ်ထုတ်ရန်', async (ctx) => {
     if (!isAdmin(ctx)) return;
     const shop = await Shop.findOne();
     const now = new Date();
-    // သက်တမ်းမကုန်သေးတဲ့ code ရှိမရှိ စစ်ဆေးခြင်း
     if (shop.promo && shop.promo.code && shop.promo.expiry && now < shop.promo.expiry) {
         return ctx.reply(`❌ လက်ရှိအချိန်တွင် Active ဖြစ်နေသော Promo Code (${shop.promo.code}) ရှိနေသေးပါသဖြင့် ထပ်ထုတ်၍ မရသေးပါ။ သက်တမ်းကုန်ဆုံးချိန်အထိ စောင့်ပါ သို့မဟုတ် ပြန်ပြင်ရန် ခလုတ်မှ ပြင်ဆင်ပါ။`);
     }
@@ -134,13 +150,13 @@ bot.hears('⚙️ Promo Code ပြန်ပြင်ရန်', async (ctx) => 
     );
 });
 
-bot.hears('🎮 စိန်ဖြည့်ရန် (Top-Up Store)', async (ctx) => {
+bot.hears('🎮 စိန်ဖြည့်ရန် (Top-Up Store)', checkMiddleware, async (ctx) => {
     const shop = await Shop.findOne();
     const kb = Object.keys(ITEM_NAMES).map(k => [Markup.button.callback(`🔹 ${ITEM_NAMES[k]} - ${(shop.prices.get(k) || 0).toLocaleString()} Ks`, `buy_${k}`)]);
     ctx.reply('💎 စိန်စာရင်း -', Markup.inlineKeyboard(kb));
 });
 
-bot.hears('🎁 Daily Check-In', async (ctx) => {
+bot.hears('🎁 Daily Check-In', checkMiddleware, async (ctx) => {
     const user = await User.findOne({ telegramId: ctx.from.id.toString() });
     const now = new Date();
     if (user.lastCheckIn && now.toDateString() === user.lastCheckIn.toDateString()) return ctx.reply('⚠️ ယနေ့အတွက် ယူပြီးပါပြီ။');
@@ -184,20 +200,20 @@ bot.hears('💰 My Points & Coupons', async (ctx) => {
 });
 
 // ==========================================
-// 5. CALLBACK ACTIONS
+// 5. CALLBACK BUTTON ROUTERS
 // ==========================================
 bot.action('reset_dashboard', async (ctx) => {
     if (!isAdmin(ctx)) return ctx.answerCbQuery('⚠️ No Permission');
     await Shop.findOneAndUpdate({}, { $set: { totalOrders: 0, totalRevenue: 0, totalProfit: 0 } });
-    await ctx.answerCbQuery('✅ စာရင်းဇယားများအားလုံး ၀ သို့ ပြန်ပြင်ဆင်ပြီးပါပြီ။');
-    ctx.editMessageText('📊 *AURA DIGITAL*\n\n✅ ယခုတစ်ပတ်အတွက် စာရင်းချုပ်အားလုံးကို အောင်မြင်စွာ ဖျက်သိမ်းပြီး စာရင်းအသစ် ပြန်စလိုက်ပါပြီဗျာ။ (User Data များ ထိခိုက်မှု မရှိပါ)။');
+    await ctx.answerCbQuery('✅ Reset လုပ်ပြီးပါပြီ');
+    ctx.editMessageText('📊 *AURA DIGITAL*\n\n✅ ယခုတစ်ပတ်အတွက် စာရင်းချုပ်အားလုံးကို အောင်မြင်စွာ ဖျက်သိမ်းပြီး စာရင်းအသစ် ပြန်စလိုက်ပါပြီဗျာ။ (User Data များနှင့် အော်ဒါမှတ်တမ်းများ လုံးဝမပျက်ပါ)။');
 });
 
 bot.action('delete_promo_code', async (ctx) => {
     if (!isAdmin(ctx)) return ctx.answerCbQuery('⚠️ No Permission');
     await Shop.findOneAndUpdate({}, { $set: { "promo.code": null, "promo.poolPoints": 0, "promo.expiry": null, "promo.claimedUsers": [] } });
     await ctx.answerCbQuery('🗑️ ဖျက်ပြီးပါပြီ');
-    ctx.editMessageText('✅ လက်ရှိ Active ဖြစ်နေသော Promo Code အား Database မှ အပြီးပိုင် ဖျက်ဆီးလိုက်ပါပြီ။');
+    ctx.editMessageText('✅ Active ဖြစ်နေသော Promo Code အား Database မှ လုံးဝ ဖျက်သိမ်းလိုက်ပါပြီ။');
 });
 
 bot.action('edit_promo_pool', async (ctx) => {
@@ -207,7 +223,7 @@ bot.action('edit_promo_pool', async (ctx) => {
 
 bot.action('edit_promo_expiry', async (ctx) => {
     if (!isAdmin(ctx)) return; adminActionState = { step: 'EDIT_PROMO_EXP_VAL' };
-    ctx.reply('📝 ယခုအချိန်မှစ၍ သက်တမ်းကုန်ဆုံးစေလိုသည့် *နာရီပမာဏ* ကို ရိုက်ပို့ပေးပါ (ဥပမာ - ၂၄ နာရီဆိုလျှင် 24)');
+    ctx.reply('📝 ယခုအချိန်မှစ၍ သက်တမ်းကုန်ဆုံးစေလိုသည့် *နာရီပမာဏ* ကို ရိုက်ပို့ပေးပါ (ဥပမာ - 24)');
 });
 
 bot.action('bc_confirm', async (ctx) => {
@@ -219,7 +235,7 @@ bot.action('bc_confirm', async (ctx) => {
         try {
             if (adminBroadcastState.photo) await bot.telegram.sendPhoto(u.telegramId, adminBroadcastState.photo, { caption: adminBroadcastState.text });
             else await bot.telegram.sendMessage(u.telegramId, adminBroadcastState.text);
-            await new Promise(r => setTimeout(r, 50)); 
+            await new Promise(resolve => setTimeout(resolve, 50)); 
         } catch (e) {}
     }
     ctx.reply('✅ ကြော်ငြာပို့ဆောင်မှု ပြီးဆုံးပါပြီ။');
@@ -231,17 +247,17 @@ bot.action('bc_cancel', (ctx) => {
     ctx.editMessageText('❌ ကြော်ငြာအား ဖျက်သိမ်းလိုက်ပါပြီ။');
 });
 
-bot.action('shop_open', async (ctx) => { await Shop.findOneAndUpdate({}, { shopOpen: true }); ctx.editMessageText('🏪 ဆိုင်ဖွင့်လိုက်ပါပြီ။'); });
-bot.action('shop_close', async (ctx) => { await Shop.findOneAndUpdate({}, { shopOpen: false }); ctx.editMessageText('🏪 ဆိုင်ပိတ်လိုက်ပါပြီ။'); });
+bot.action('shop_open', async (ctx) => { await Shop.findOneAndUpdate({}, { shopOpen: true }); ctx.editMessageText('🏪 ဆိုင်အခြေအနေအား [ 🟢 ဖွင့်လှစ်သည် ] သို့ ပြောင်းလဲလိုက်ပါပြီ။'); });
+bot.action('shop_close', async (ctx) => { await Shop.findOneAndUpdate({}, { shopOpen: false }); ctx.editMessageText('🏪 ဆိုင်အခြေအနေအား [ 🔴 ပိတ်သိမ်းသည် ] သို့ ပြောင်းလဲလိုက်ပါပြီ။'); });
 
-bot.action(/^buy_(.+)$/, async (ctx) => {
+bot.action(/^buy_(.+)$/, checkMiddleware, async (ctx) => {
     const k = ctx.match[1]; const s = await Shop.findOne();
     userSessions.set(ctx.from.id.toString(), { itemKey: k, itemName: ITEM_NAMES[k], basePrice: s.prices.get(k), costPrice: s.costs.get(k), step: 'AWAITING_ID' });
     ctx.reply(`🎯 ${ITEM_NAMES[k]} အတွက် MLBB User ID(Zone ID) ပို့ပေးပါဗျာ။\nဥပမာ - 166049831(2851)`);
 });
 
 // ==========================================
-// 6. PHOTO / INPUT PROCESSING
+// 6. PHOTO / RECEIPT AND BROADCAST LOGIC
 // ==========================================
 bot.on('photo', async (ctx) => {
     if (isAdmin(ctx) && adminBroadcastState.step === 'AWAITING_MSG') {
@@ -263,6 +279,9 @@ bot.on('photo', async (ctx) => {
     });
 });
 
+// ==========================================
+// 7. INPUT TEXT FLOW MANAGEMENT
+// ==========================================
 bot.on('text', async (ctx, next) => {
     const input = ctx.message.text.trim();
     const uid = ctx.from.id.toString();
@@ -274,11 +293,24 @@ bot.on('text', async (ctx, next) => {
         }
         if (adminActionState.step === 'PRICE_NEW_AMT') {
             adminActionState.price = parseInt(input); adminActionState.step = 'COST_NEW_AMT';
-            return ctx.reply('⚙️ ဆက်လက်ပြီး ရင်းဈေး (Cost) ကို ရိုက်ပို့ပေးပါဗျာ။');
+            return ctx.reply('⚙️ ရောင်းဈေးသိမ်းဆည်းပြီးပါပြီ။ ဆက်လက်ပြီး ရင်းဈေး (Cost) ကို ဂဏန်းသီးသန့် ရိုက်ပို့ပေးပါဗျာ။');
         }
         if (adminActionState.step === 'COST_NEW_AMT') {
             const s = await Shop.findOne(); s.prices.set(adminActionState.key, adminActionState.price); s.costs.set(adminActionState.key, parseInt(input));
-            await s.save(); ctx.reply('✅ ပြင်ဆင်ပြီးပါပြီ။', adminMenu); adminActionState = {}; return;
+            await s.save(); ctx.reply('✅ ဈေးနှုန်းနှင့် ရင်းဈေး ပြင်ဆင်မှု အောင်မြင်ပါသည်။', adminMenu); adminActionState = {}; return;
+        }
+        if (adminActionState.step === 'POINT_USER_ID') {
+            const targetUser = await User.findOne({ telegramId: input });
+            if (!targetUser) return ctx.reply('⚠️ Database တွင် ဤ User ID အား ရှာမတွေ့ပါ။');
+            adminActionState.targetUid = input; adminActionState.step = 'POINT_NEW_AMT';
+            return ctx.reply(`👤 User: ${targetUser.name}\n🎯 လက်ရှိအမှတ်: ${targetUser.points} Pts\n\nတိုးမြှင့်/လျှော့ချချင်သော အမှတ်ပမာဏကို ရိုက်ထည့်ပါ (ဥပမာ - 5000 သို့မဟုတ် -2000)`);
+        }
+        if (adminActionState.step === 'POINT_NEW_AMT') {
+            const amt = parseInt(input); if (isNaN(amt)) return ctx.reply('⚠️ ဂဏန်းအမှန်ကန်ဆုံး ရိုက်ပေးပါဗျာ။');
+            await User.findOneAndUpdate({ telegramId: adminActionState.targetUid }, { $inc: { points: amt } });
+            ctx.reply('✅ အမှတ်ပြင်ဆင်မှု အောင်မြင်ပါပြီဗျာ။', adminMenu);
+            try { await bot.telegram.sendMessage(adminActionState.targetUid, `🔔 Admin မှ လူကြီးမင်း၏ အမှတ်စာရင်းအား ပြင်ဆင်လိုက်သဖြင့် Point အပြောင်းအလဲ ရှိသွားပါသည်ဗျာ။`); } catch (e) {}
+            adminActionState = {}; return;
         }
         if (adminActionState.step === 'PROMO_CODE_NAME') {
             adminActionState.codeName = input.toUpperCase(); adminActionState.step = 'PROMO_POOL';
@@ -302,14 +334,14 @@ bot.on('text', async (ctx, next) => {
         if (adminActionState.step === 'EDIT_PROMO_EXP_VAL') {
             const hrs = parseInt(input); const newExp = new Date(); newExp.setHours(newExp.getHours() + hrs);
             await Shop.findOneAndUpdate({}, { $set: { "promo.expiry": newExp } });
-            ctx.reply(`✅ Promo Code ၏ သက်တမ်းအား ယခုအချိန်မှစ၍ *${hrs} နာရီ* သို့ တိုးမြှင့်ပြင်ဆင်ပြီးပါပြီဗျာ။`, adminMenu);
+            ctx.reply(`✅ Promo Code ၏ သက်တမ်းအား ယခုအချိန်မှစ၍ *${hrs} နာရီ* သို့ ပြောင်းလဲပြင်ဆင်ပြီးပါပြီဗျာ။`, adminMenu);
             adminActionState = {}; return;
         }
     }
 
     // User Promo Code Router
     if (uid && adminActionState[uid] && adminActionState[uid].step === 'USER_PROMO_INPUT') {
-        const shop = await Shop.findOne(); const user = await User.findOne({ telegramId: uid });
+        const shop = await Shop.findOne();
         if (!shop.promo.code || shop.promo.code !== input.toUpperCase()) return ctx.reply('❌ ဤပရိုမိုးရှင်းကုဒ် မှားယွင်းနေပါသည်ဗျာ။');
         if (shop.promo.claimedUsers.includes(uid)) return ctx.reply('⚠️ လူကြီးမင်းသည် ယခုပရိုမိုးရှင်းတွင် ပါဝင်ပြီးဖြစ်ပါသည်ဗျာ။');
         
@@ -321,7 +353,7 @@ bot.on('text', async (ctx, next) => {
             if (wonPoints > shop.promo.poolPoints) wonPoints = shop.promo.poolPoints;
             await Shop.findOneAndUpdate({}, { $inc: { "promo.poolPoints": -wonPoints }, $push: { "promo.claimedUsers": uid } });
         } else {
-            return ctx.reply('⚠️ စိတ်မကောင်းပါဘူးဗျာ၊ ကမ်ပိန်း၏ Point Pool ကုန်ဆုံးသွားပါပြီ။');
+            return ctx.reply('⚠️ စိတ်မကောင်းပါဘူးဗျာ偏၊ ကမ်ပိန်း၏ Point Pool ကုန်ဆုံးသွားပါပြီ။');
         }
 
         await User.findOneAndUpdate({ telegramId: uid }, { $inc: { points: wonPoints } });
