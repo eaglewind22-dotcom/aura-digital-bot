@@ -23,7 +23,6 @@ const userSessions = new Map();
 let adminBroadcastState = {}; 
 let adminActionState = {}; 
 
-// Admin ဟုတ်မဟုတ် တိတိကျကျ စစ်ဆေးပေးမည့် Engine
 function isAdmin(ctx) {
     const uid = ctx.from ? ctx.from.id.toString() : null;
     if (uid === ADMIN_CHAT_ID) return true;
@@ -102,10 +101,11 @@ const userMainMenu = Markup.keyboard([
     ['📞 Contact Admin']
 ]).resize();
 
+// FIXED: Emoji မပါသော စာသားစစ်စနစ်အတွက် Admin Menu ကို ရှင်းလင်းစွာ ပြင်ဆင်ခြင်း
 const adminMainMenu = Markup.keyboard([
-    ['📊 Dashboard (စာရင်းချုပ်)', '🏪 ဆိုင် ဖွင့်/ပိတ် Panel'],
-    ['🔧 ဈေးနှုန်း/ရင်းဈေး ပြင်ရန်', '👤 User Point ပြင်ရန်'],
-    ['🎟️ Promo Code အသစ်ထုတ်ရန်', '📢 ကြော်ငြာစာ ပို့ရန်']
+    ['Dashboard (စာရင်းချုပ်)', 'ဆိုင် ဖွင့်/ပိတ် Panel'],
+    ['ဈေးနှုန်း/ရင်းဈေး ပြင်ရန်', 'User Point ပြင်ရန်'],
+    ['Promo Code အသစ်ထုတ်ရန်', 'ကြော်ငြာစာ ပို့ရန်']
 ]).resize();
 
 function getMainMenu(ctx) { return isAdmin(ctx) ? adminMainMenu : userMainMenu; }
@@ -137,9 +137,11 @@ async function checkMiddleware(ctx, next) {
 // 4. USER FUNCTIONS
 // ==========================================
 bot.start(async (ctx) => {
-    const uid = ctx.from.id.toString(); userSessions.delete(uid);
+    const uid = ctx.from ? ctx.from.id.toString() : null;
+    if (uid) userSessions.delete(uid);
+    
     let user = await User.findOne({ telegramId: uid });
-    if (!user) {
+    if (!user && uid) {
         let rId = (ctx.startPayload && ctx.startPayload.startsWith('ref_')) ? ctx.startPayload.replace('ref_', '') : null;
         if (rId === uid) rId = null;
         user = await User.create({ telegramId: uid, username: ctx.from.username, name: ctx.from.first_name, referredBy: rId });
@@ -258,7 +260,7 @@ bot.action('skip_discount', checkMiddleware, async (ctx) => {
 });
 
 async function sendPaymentDetails(ctx, session) {
-    let msg = `💵 *AURA DIGITAL - ငွေပေးချေမှု* 💵\n\nပစ္စည်း: *${session.itemName}*\n🎯 MLBB ID: \`${session.gameId}\`\n`;
+    let msg = `💵 *AURA DIGITAL - Ngwe ပေးချေမှု* 💵\n\nပစ္စည်း: *${session.itemName}*\n🎯 MLBB ID: \`${session.gameId}\`\n`;
     if (session.discountUsed > 0) msg += `🔥 ကူပွန်လျှော့ဈေး: -${session.discountUsed.toLocaleString()} Ks\n`;
     msg += `💰 *လွှဲရမည့်ငွေ: ${session.finalPrice.toLocaleString()} Kyats*\n\n• KPay: \`09692272242\` (ဒေါ်အေးအေးမြင့်)\n\nလွှဲပြီးပါက ပြေစာ Screenshot (ဓာတ်ပုံ) ကို ပို့ပေးပါဗျာ။`;
     ctx.replyWithPhoto(KPAY_QR_FILE_ID, { caption: msg, parse_mode: 'Markdown' }).catch(() => ctx.replyWithMarkdown(msg));
@@ -449,9 +451,9 @@ bot.action(/^rev_(.+)$/, async (ctx) => {
 });
 
 // ==========================================
-// 7. ADMIN CONTROLS (PRICE EDIT, PROMO, DASHBOARD)
+// 7. ADMIN CONTROLS (FIXED - NO EMOJI IN BOT.HEARS)
 // ==========================================
-bot.hears('🔧 ဈေးနှုန်း/ရင်းဈေး ပြင်ရန်', (ctx) => {
+bot.hears('ဈေးနှုန်း/ရင်းဈေး ပြင်ရန်', (ctx) => {
     if (!isAdmin(ctx)) return;
     const keyboard = Object.keys(ITEM_NAMES).map(key => [Markup.button.callback(ITEM_NAMES[key], `eprc_${key}`)]);
     ctx.reply('🔧 ပြင်ဆင်လိုသည့် Item ကို ရွေးချယ်ပေးပါဗျာ -', Markup.inlineKeyboard(keyboard));
@@ -462,22 +464,22 @@ bot.action(/^eprc_(.+)$/, async (ctx) => {
     ctx.editMessageText(`📝 *${ITEM_NAMES[key]}* အတွက် *ရောင်းဈေးအသစ်* ကို ဂဏန်းသီးသန့် (Ks) ဖြင့် ရိုက်ပို့ပေးပါဗျာ။`);
 });
 
-bot.hears('👤 User Point ပြင်ရန်', (ctx) => {
+bot.hears('User Point ပြင်ရန်', (ctx) => {
     if (!isAdmin(ctx)) return; adminActionState = { step: 'POINT_USER_ID' };
     ctx.reply('📝 အမှတ်ပြင်လိုသော User ၏ Telegram ID (ဂဏန်းများ) ကို ရိုက်ပို့ပေးပါဗျာ။');
 });
 
-bot.hears('🎟️ Promo Code အသစ်ထုတ်ရန်', (ctx) => {
+bot.hears('Promo Code အသစ်ထုတ်ရန်', (ctx) => {
     if (!isAdmin(ctx)) return; adminActionState = { step: 'PROMO_CODE_NAME' };
     ctx.reply('📝 ကမ်ပိန်းအတွက် အသုံးပြုမည့် Promo Code စာသားကို ရိုက်ပေးပါဗျာ (ဥပမာ - THADINGYUT)');
 });
 
-bot.hears('📊 Dashboard (စာရင်းချုပ်)', async (ctx) => {
+bot.hears('Dashboard (စာရင်းချုပ်)', async (ctx) => {
     if (!isAdmin(ctx)) return; const shop = await Shop.findOne();
     ctx.replyWithMarkdown(`📊 *AURA DIGITAL - စာရင်းဇယားချုပ်*\n\n📝 စုစုပေါင်းအော်ဒါ: *${shop.totalOrders} ခု*\n💰 စုစုပေါင်း ရောင်းရငွေ: *${shop.totalRevenue.toLocaleString()} Ks*\n📈 *အသားတင်အမြတ်စုစုပေါင်း: ${shop.totalProfit.toLocaleString()} Ks*`);
 });
 
-bot.hears('🏪 ဆိုင် ဖွင့်/ပိတ် Panel', async (ctx) => {
+bot.hears('ဆိုင် ဖွင့်/ပိတ် Panel', async (ctx) => {
     if (!isAdmin(ctx)) return; const shop = await Shop.findOne();
     ctx.reply(`🏪 Aura Digital ဆိုင်လက်ရှိအခြေအနေ: ${shop.shopOpen ? '🟢 ဖွင့်ထားသည်' : '🔴 ပိတ်ထားသည်'}`, Markup.inlineKeyboard([
         [Markup.button.callback('🟢 ဆိုင်ဖွင့်မည်', 'shop_open'), Markup.button.callback('🔴 ဆိုင်ပိတ်မည်', 'shop_close')]
@@ -492,7 +494,7 @@ bot.action('claim_coupon_5', async (ctx) => {
     await User.findOneAndUpdate({ telegramId: uid }, { $inc: { points: -5000, couponsCount: 1 } }); ctx.editMessageText('🎟️ 5% Coupon အား လဲလှယ်သိမ်းဆည်းလိုက်ပါပြီ။').catch(() => {});
 });
 
-bot.hears('📢 ကြော်ငြာစာ ပို့ရန်', (ctx) => {
+bot.hears('ကြော်ငြာစာ ပို့ရန်', (ctx) => {
     if (!isAdmin(ctx)) return; adminBroadcastState = { step: 'AWAITING_MSG' };
     ctx.reply('📢 ကြော်ငြာချင်သော စာသား (သို့မဟုတ်) ပုံတင်ပြီး Caption ရိုက်ပို့ပေးပါဗျာ။');
 });
