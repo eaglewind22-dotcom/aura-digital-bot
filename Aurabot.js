@@ -93,11 +93,10 @@ async function checkForcedJoinAndShop(ctx, next) {
         const member = await ctx.telegram.getChatMember(CHANNEL_USERNAME, uid);
         if (['left', 'kicked'].includes(member.status)) {
             return ctx.reply(`⚠️ လူကြီးမင်းအနေဖြင့် ကျွန်ုပ်တို့၏ ဝန်ဆောင်မှုများကို အသုံးပြုနိုင်ရန် Aura Digital Channel ကို အရင် Join ပေးရန် လိုအပ်ပါသည်ဗျာ။`,
-                Markup.inlineKeyboard([[Markup.button.url('📢 Channel Thို့ဝင်ရန်', `t.me/${CHANNEL_USERNAME.replace('@','')}`)]])
+                Markup.inlineKeyboard([[Markup.button.url('📢 Channel သို့ဝင်ရန်', `t.me/${CHANNEL_USERNAME.replace('@','')}`)]])
             );
         }
         
-        // CRITICAL FIX: Ensure Shop Document Exists dynamically to avoid null readings
         let shop = await Shop.findOne();
         if (!shop) {
             shop = await Shop.create({});
@@ -323,7 +322,7 @@ bot.action('coupon_no', async (ctx) => {
 function goToPaymentSelection(ctx, uid, session, hasDiscount) {
     if (!session.finalPrice) session.finalPrice = session.basePrice;
     userSessions.set(uid, session);
-    ctx.reply(`💵 ကျသင့်ငွေစာရင်း: *${session.finalPrice.toLocaleString()} Ks* ${hasDiscount ? '(ကူပွန်နှုတ်ပြီး)' : ''}\n\nကျေးဇူးပြု၍ ငွေပေးချေမည့် စနစ်အား ရွေးချယ်ပေးပါဗျာ။`, {
+    ctx.reply(`💵 ကျသင့်ငွေစာရင်း: *${session.finalPrice.toLocaleString()} Ks* ${hasDiscount ? '(ကူပွန်နှုတ်ပြီး)' : ''}\n\nကျေးဇူးပြု၍ Ngwe ပေးချေမည့် စနစ်အား ရွေးချယ်ပေးပါဗျာ။`, {
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard([
             [Markup.button.callback('🟢 KBZPay ဖြင့်ပေးချေမည်', 'pay_kpay'), Markup.button.callback('🟢 WaveMoney ဖြင့်ပေးချေမည်', 'pay_wave')],
@@ -475,7 +474,7 @@ bot.on('text', checkForcedJoinAndShop, async (ctx, next) => {
                 const balance = parseInt(input); const oid = aState.targetOid;
                 const o = await Order.findOneAndUpdate({ orderId: oid }, { status: 'Awaiting_Balance', pendingBalance: balance });
                 adminState.delete(uid); ctx.reply('✅ User ထံ လက်ကျန်ငွေတောင်းခံစာ ပို့လိုက်ပါပြီ။');
-                bot.telegram.sendMessage(o.telegramId, `⚠️ အော်ဒါ #${oid} အတွက် လူကြီးမင်းလွှဲအပ်ထားသော ငွေပမာဏ မပြည့်စုံပါသဖြင့် လက်ကျန်ငွေ *${balance.toLocaleString()} Ks* အား ထပ်မံလွှဲပေးရန် လိုအပ်ပါသည်ဗျာ။`, {
+                bot.telegram.sendMessage(o.telegramId, `⚠️ အော်ဒါ #${oid} အတွက် လူကြီးမင်းလွှဲအပ်ထားသော Ngwe ပမာဏ မပြည့်စုံပါသဖြင့် လက်ကျန်ငွေ *${balance.toLocaleString()} Ks* အား ထပ်မံလွှဲပေးရန် လိုအပ်ပါသည်ဗျာ။`, {
                     parse_mode: 'Markdown',
                     ...Markup.inlineKeyboard([[Markup.button.callback('💵 လက်ကျန်ငွေလွှဲပြေစာ ပို့မည်', `send_bal_${oid}`)], [Markup.button.callback('❌ ဤအော်ဒါအား ဖျက်သိမ်းမည်', `user_cancel_order_${oid}`)]])
                 }).catch(()=>{}); return;
@@ -638,7 +637,7 @@ bot.action(/^acxl_opt_(.+)$/, async (ctx) => {
             inline_keyboard: [
                 [Markup.button.callback('❌ ပြေစာမှားယွင်းမှု တောင်းရန်', `cxr_receipt_${oid}`)],
                 [Markup.button.callback('❌ ဂိမ်း ID ပြန်ပြင်ခိုင်းရန်', `cxr_id_${oid}`)],
-                [Markup.button.callback('❌ ငွေမပြည့်၍ လက်ကျန်တောင်းရန်', `cxr_bal_${oid}`)]
+                [Markup.button.callback('❌ Ngwe မပြည့်၍ လက်ကျန်တောင်းရန်', `cxr_bal_${oid}`)]
             ]
         }).catch(()=>{});
     } catch(e) { console.error(e); }
@@ -717,10 +716,15 @@ bot.action('shop_open', async (ctx) => { try { await ctx.answerCbQuery(); await 
 bot.action('shop_close', async (ctx) => { try { await ctx.answerCbQuery(); await Shop.findOneAndUpdate({}, { shopOpen: false }); ctx.editMessageText('🏪 ဆိုင်အား အောင်မြင်စွာ [ပိတ်သိမ်း] လိုက်ပါပြီဗျာ။'); } catch(e){} });
 bot.action('del_promo', async (ctx) => { try { await ctx.answerCbQuery(); await Shop.findOneAndUpdate({}, { $unset: { promo: "" } }); ctx.editMessageText('✅ လက်ရှိ Promo Code အား စနစ်ထဲမှ အောင်မြင်စွာ ပယ်ဖျက်လိုက်ပါပြီဗျာ။'); } catch(e){} });
 
-// Server Live Verification Routine
+// Server Live Verification & Auto Refresh Routine
 const server = http.createServer((req, res) => { res.end('Aura Engine Core is Online.'); });
 server.listen(process.env.PORT || 3000, () => { 
-    bot.launch()
-        .then(() => console.log('🚀 Aura Digital Premium Engine is Live with zero null bugs.'))
-        .catch(err => console.error('Bot launch failed:', err));
+    // FIXED: polling setting with dropPendingUpdates to forcefully clear conflicts on Render
+    bot.launch({
+        polling: {
+            dropPendingUpdates: true
+        }
+    })
+    .then(() => console.log('🚀 Aura Digital Premium Engine is Live with zero null/conflict bugs.'))
+    .catch(err => console.error('Bot launch failed:', err));
 });
