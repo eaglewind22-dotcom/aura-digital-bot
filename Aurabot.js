@@ -56,17 +56,27 @@ initShop();
 const ITEM_NAMES = { 'mlbb_wp': '🔥 Weekly Pass', 'mlbb_tp': '🤩 Twilight Pass', 'mlbb_86': '💎 Dia 86', 'mlbb_172': '💎 Dia 172' };
 
 // ==========================================
-// 3. KEYBOARDS & MIDDLEWARES (SHOP OPEN/CLOSE CHECK)
+// 3. KEYBOARDS & MIDDLEWARES (FIXED LAYOUT)
 // ==========================================
-const userMenu = Markup.keyboard([['🎮 စိန်ဖြည့်ရန် (Top-Up Store)'], ['🎁 Daily Check-In', '💰 My Points & Coupons'], ['📜 ဝယ်ယူမှုမှတ်တမ်း', '💡 အသုံးပြုပုံလမ်းညွှန်'], ['📞 Contact Admin']]).resize();
-const adminMenu = Markup.keyboard([['Dashboard (စာရင်းချုပ်)', 'ဆိုင် ဖွင့်/ပိတ် Panel'], ['ဈေးနှုန်း/ရင်းဈေး ပြင်ရန်', 'User Point ပြင်ရန်'], ['Promo Code အသစ်ထုတ်ရန်', '⚙️ Promo Code ပြန်ပြင်ရန်'], ['ကြော်ငြာစာ ပို့ရန်']]).resize();
+const userMenu = Markup.keyboard([
+    ['🎮 စိန်ဖြည့်ရန် (Top-Up Store)'],
+    ['🎁 Daily Check-In', '💰 My Points & Coupons'],
+    ['📜 ဝယ်ယူမှုမှတ်တမ်း', '💡 အသုံးပြုပုံလမ်းညွှန်'],
+    ['📞 Contact Admin']
+]).resize();
+
+const adminMenu = Markup.keyboard([
+    ['Dashboard (စာရင်းချုပ်)', 'ဆိုင် ဖွင့်/ပိတ် Panel'],
+    ['ဈေးနှုန်း/ရင်းဈေး ပြင်ရန်', 'User Point ပြင်ရန်'],
+    ['Promo Code အသစ်ထုတ်ရန်', '⚙️ Promo Code ပြန်ပြင်ရန်'],
+    ['ကြော်ငြာစာ ပို့ရန်']
+]).resize();
 
 function getMainMenu(ctx) { return isAdmin(ctx) ? adminMenu : userMenu; }
 
-// 🏪 ဆိုင်ဖွင့်/ပိတ် နှင့် အသုံးပြုခွင့် စစ်ဆေးရန် ပင်မ Middleware
+// 🏪 ဆိုင်ဖွင့်/ပိတ် စစ်ဆေးရန် Middleware
 async function checkMiddleware(ctx, next) {
     if (isAdmin(ctx)) return next(); 
-    
     const shop = await Shop.findOne();
     if (shop && !shop.shopOpen) {
         return ctx.reply('👋 မင်္ဂလာပါဗျာ။ လက်ရှိအချိန်တွင် Aura Digital ဆိုင်ခေတ္တ ပိတ်ထားပါသဖြင့် အော်ဒါတင်၍ ရဦးမည်မဟုတ်ပါဗျာ။');
@@ -318,7 +328,7 @@ bot.on('text', async (ctx, next) => {
         }
         if (adminActionState.step === 'PROMO_POOL') {
             adminActionState.pool = parseInt(input); adminActionState.step = 'PROMO_EXPIRY';
-            return ctx.reply('🎟️ Point Pool သတ်မှတ်ပြီးပါပြီ။\n\nသက်တမ်းကုန်ဆုံးမည့် နာရီပမာဏကို ရိုက်ထည့်ပေးပါ (ဥပမာ - 48)');
+            return ctx.reply('🎟️ Point Pool သတ်မှတ်ပြီးပါပြီ။\n\nက်တမ်းကုန်ဆုံးမည့် နာရီပမာဏကို ရိုက်ထည့်ပေးပါ (ဥပမာ - 48)');
         }
         if (adminActionState.step === 'PROMO_EXPIRY') {
             const hours = parseInt(input); const expDate = new Date(); expDate.setHours(expDate.getHours() + hours);
@@ -353,7 +363,7 @@ bot.on('text', async (ctx, next) => {
             if (wonPoints > shop.promo.poolPoints) wonPoints = shop.promo.poolPoints;
             await Shop.findOneAndUpdate({}, { $inc: { "promo.poolPoints": -wonPoints }, $push: { "promo.claimedUsers": uid } });
         } else {
-            return ctx.reply('⚠️ စိတ်မကောင်းပါဘူးဗျာ偏၊ ကမ်ပိန်း၏ Point Pool ကုန်ဆုံးသွားပါပြီ။');
+            return ctx.reply('⚠️ စိတ်မကောင်းပါဘူးဗျာ၊ ကမ်ပိန်း၏ Point Pool ကုန်ဆုံးသွားပါပြီ။');
         }
 
         await User.findOneAndUpdate({ telegramId: uid }, { $inc: { points: wonPoints } });
