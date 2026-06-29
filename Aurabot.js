@@ -715,13 +715,18 @@ bot.action(/^eprc_(.+)$/, async (ctx) => {
 bot.action('shop_open', async (ctx) => { try { await ctx.answerCbQuery(); await Shop.findOneAndUpdate({}, { shopOpen: true }); ctx.editMessageText('🏪 ဆိုင်အား အောင်မြင်စွာ [ဖွင့်လှစ်] လိုက်ပါပြီဗျာ။'); } catch(e){} });
 bot.action('shop_close', async (ctx) => { try { await ctx.answerCbQuery(); await Shop.findOneAndUpdate({}, { shopOpen: false }); ctx.editMessageText('🏪 ဆိုင်အား အောင်မြင်စွာ [ပိတ်သိမ်း] လိုက်ပါပြီဗျာ။'); } catch(e){} });
 bot.action('del_promo', async (ctx) => { try { await ctx.answerCbQuery(); await Shop.findOneAndUpdate({}, { $unset: { promo: "" } }); ctx.editMessageText('✅ လက်ရှိ Promo Code အား စနစ်ထဲမှ အောင်မြင်စွာ ပယ်ဖျက်လိုက်ပါပြီဗျာ။'); } catch(e){} });
-
+// ==========================================
+// FIX: WEBHOOK INITIALIZATION
+// ==========================================
 const PORT = process.env.PORT || 3000;
 
-// Webhook ချိတ်ခြင်း
-bot.telegram.setWebhook(`${URL}/bot${BOT_TOKEN}`);
+// Webhook ကို တည်ငြိမ်အောင် URL ကို Environment variable ကနေယူခြင်း
+const WEBHOOK_URL = process.env.RENDER_EXTERNAL_URL ? `${process.env.RENDER_EXTERNAL_URL}/bot${BOT_TOKEN}` : `${URL}/bot${BOT_TOKEN}`;
 
-// Server တည်ဆောက်ခြင်း
+bot.telegram.setWebhook(WEBHOOK_URL).then(() => {
+    console.log(`✅ Webhook set to: ${WEBHOOK_URL}`);
+});
+
 const server = http.createServer((req, res) => {
     if (req.url === `/bot${BOT_TOKEN}`) {
         bot.handleUpdate(req, res);
@@ -731,5 +736,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-    console.log(`🚀 Bot is live on port ${PORT} via Webhook.`);
+    console.log(`🚀 Bot is live on port ${PORT} using Webhook.`);
 });
