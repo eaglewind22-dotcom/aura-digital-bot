@@ -10,7 +10,7 @@ const BOT_TOKEN = '8953970980:AAG-8uV8P9ni_vlmXVGdTZfdVrSFHuosX3Y';
 const ADMIN_CHAT_ID = '7534742589'; 
 const ADMIN_USERNAME = '@Wunna2232003';
 const BOT_USERNAME = 'AuraDigitalPremium_Bot'; 
-const CHANNEL_USERNAME = 'AuraDigitalPremium'; 
+const CHANNEL_USERNAME = '@AuraDigitalPremium';
 const MONGO_URI = 'mongodb+srv://eaglewind22_db:2232003wunna@cluster0.qqgs4ef.mongodb.net/aura_digital?retryWrites=true&w=majority&appName=Cluster0';
 const URL = 'https://aura-digital-bot.onrender.com';
 
