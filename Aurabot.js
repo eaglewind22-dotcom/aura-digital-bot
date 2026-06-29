@@ -212,7 +212,7 @@ bot.hears('📜 ဝယ်ယူမှုမှတ်တမ်း', checkForcedJo
                 const emoji = o.status === 'Success' ? '✅' : (o.status === 'Cancelled' ? '❌' : '⏳');
                 msg += `${i + 1}. #${o.orderId} - *${o.itemName}*\n   💰 ကျသင့်ငွေ: ${o.price} Ks\n   📊 အခြေအနေ: ${emoji} *${o.status}*\n\n`;
             });
-            ctx.replyWithMarkdown(msg);
+            ctx.reply(msg, { parse_mode: 'Markdown' });
         } catch(e) { console.error(e); }
     });
 });
