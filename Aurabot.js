@@ -20,17 +20,7 @@ bot.hears('🎮 မိတ်ဆွေဖျော်ဖြေရေး (Top-Up S
     ctx.reply("Store menu ရောက်ပါပြီ!");
 });
 
-// --- Server Setup (ဒါတွေကို မဖျက်ရပါဘူး) ---
-const PORT = process.env.PORT || 3000;
-const WEBHOOK_URL = `${process.env.RENDER_EXTERNAL_URL}/bot${BOT_TOKEN}`;
-
-bot.telegram.setWebhook(WEBHOOK_URL).then(() => console.log(`✅ Webhook Set`));
-
-const server = http.createServer((req, res) => {
-    if (req.url === `/bot${BOT_TOKEN}`) {
-        bot.handleUpdate(req, res);
-    } else {
-        res.end('Aura Digital Bot is Online.');
+bot.launch().then(() => console.log('🚀 Bot is running in Polling mode'));
     }
 });
 
