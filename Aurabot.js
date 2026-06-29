@@ -549,27 +549,23 @@ bot.hears('🏪 ဆိုင် ဖွင့်/ပိတ် Panel', async (ctx)
     let s = await Shop.findOne() || await Shop.create({});
     ctx.reply(`🏪 လက်ရှိဆိုင်အခြေအနေ: ${s.shopOpen ? '🟢 ဖွင့်ထားသည်' : '🔴 ပိတ်ထားသည်'}`, Markup.inlineKeyboard([[Markup.button.callback('🟢 ဖွင့်မည်', 'shop_open'), Markup.button.callback('🔴 ပိတ်မည်', 'shop_close')]]));
 });
+
 bot.hears('💰 လက်ရှိဈေးနှုန်းများကြည့်ရန်', async (ctx) => {
     if (!isAdmin(ctx)) return;
     let s = await Shop.findOne() || await Shop.create({});
     let msg = `💰 *လက်ရှိ သတ်မှတ်ထားသော စျေးနှုန်းဇယား*\n\n`;
     Object.keys(ITEM_NAMES).forEach(k => { msg += `• *${ITEM_NAMES[k]}*\n  ရောင်းဈေး: ${s.prices.get(k) || 0} Ks | ရင်းဈေး: ${s.costs.get(k) || 0} Ks\n\n`; });
     const kb = Object.keys(ITEM_NAMES).map(k => [Markup.button.callback(`⚙️ ပြင်မည် - ${ITEM_NAMES[k]}`, `eprc_${k}`)]);
-    ctx.reply(msg, Markup.inlineKeyboard(kb)); // <- ဒီစာသား ပြင်လိုက်တာပါ
-});
-    
-    // ✅ (ERROR FIXED နေရာ) - Keyboard Error
     ctx.reply(msg, Markup.inlineKeyboard(kb));
 });
 
 bot.hears('⚙️ အချက်အလက်များ ပြင်ရန်', (ctx) => {
     if (!isAdmin(ctx)) return;
-    ctx.reply('⚙️ ပြင်ဆင်လိုသည့် ငွေပေးချေမှုစနစ် အချက်အလက်ကို ရွေးချယ်ပါဗျာ -', Markup.inlineKeyboard([
+    ctx.reply('⚙️ ပြင်ဆင်လိုသည့် Ngwe ပေးချေမှုစနစ် အချက်အလက်ကို ရွေးချယ်ပါဗျာ -', Markup.inlineKeyboard([
         [Markup.button.callback('⚙️ KBZPay အချက်အလက်ပြင်မည်', 'cfg_pay_kpay')],
         [Markup.button.callback('⚙️ WaveMoney အချက်အလက်ပြင်မည်', 'cfg_pay_wave')]
     ]));
 });
-
 bot.hears('🎟️ Promo Code ထုတ်ရန်', (ctx) => {
     if (!isAdmin(ctx)) return;
     adminState.set(ctx.from.id.toString(), { step: 'PROMO_CODE' });
