@@ -1,17 +1,15 @@
 const { Telegraf } = require('telegraf');
+const http = require('http');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-bot.start((ctx) => {
-    console.log('User sent /start');
-    ctx.reply('Bot အလုပ်လုပ်နေပါပြီ အကိုရေ!');
-});
+bot.start((ctx) => ctx.reply('Bot အလုပ်လုပ်နေပါပြီ အကိုရေ!'));
 
-bot.on('text', (ctx) => {
-    console.log('Received:', ctx.message.text);
-    ctx.reply('Message ရောက်ပါတယ်ဗျ။');
-});
+// Webhook မသုံးတော့ဘဲ Polling သုံးမယ်
+bot.launch();
 
-bot.launch().then(() => {
-    console.log('🚀 Bot started in Polling Mode successfully!');
+// ဒါပေမဲ့ Render က Port ဖွင့်ခိုင်းနေလို့ ဒါလေးကို ထည့်ပေးထားပါ
+const server = http.createServer((req, res) => {
+    res.end('Bot is running');
 });
+server.listen(process.env.PORT || 3000);
