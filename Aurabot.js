@@ -725,10 +725,10 @@ bot.action('del_promo', async (ctx) => { try { await ctx.answerCbQuery(); await 
 const PORT = process.env.PORT || 3000;
 const WEBHOOK_URL = `${process.env.RENDER_EXTERNAL_URL}/bot${BOT_TOKEN}`;
 
-bot.telegram.setWebhook(WEBHOOK_URL).then(() => {
-    console.log(`✅ Webhook set successfully to: ${WEBHOOK_URL}`);
-}).catch(err => {
-    console.error(`🔴 Webhook Error:`, err);
+bot.telegram.deleteWebhook().then(() => {
+    bot.telegram.setWebhook(WEBHOOK_URL).then(() => {
+        console.log(`✅ Webhook set successfully to: ${WEBHOOK_URL}`);
+    });
 });
 
 const server = http.createServer((req, res) => {
