@@ -3,19 +3,19 @@ const mongoose = require('mongoose');
 const http = require('http');
 
 // ==========================================
-// 1. CONFIGURATIONS & INITIALIZATION
+// 1. CONFIGURATIONS
 // ==========================================
 const BOT_TOKEN = '8953970980:AAG-8uV8P9ni_vlmXVGdTZfdVrSFHuosX3Y';
 const ADMIN_CHAT_ID = '7534742589'; 
 const ADMIN_USERNAME = '@Wunna2232003';
 const BOT_USERNAME = 'AuraDigitalPremium_Bot'; 
 const CHANNEL_USERNAME = '@AuraDigitalPremium'; 
-
 const MONGO_URI = 'mongodb+srv://eaglewind22_db:2232003wunna@cluster0.qqgs4ef.mongodb.net/aura_digital?retryWrites=true&w=majority&appName=Cluster0';
+const URL = 'https://aura-digital-bot.onrender.com';
 
 mongoose.connect(MONGO_URI)
-    .then(() => console.log('🟢 DB Connected Successfully'))
-    .catch(err => console.error('🔴 DB Connection Error:', err));
+    .then(() => console.log('🟢 DB Connected'))
+    .catch(err => console.error('🔴 DB Error:', err));
 
 const bot = new Telegraf(BOT_TOKEN);
 
@@ -716,15 +716,20 @@ bot.action('shop_open', async (ctx) => { try { await ctx.answerCbQuery(); await 
 bot.action('shop_close', async (ctx) => { try { await ctx.answerCbQuery(); await Shop.findOneAndUpdate({}, { shopOpen: false }); ctx.editMessageText('🏪 ဆိုင်အား အောင်မြင်စွာ [ပိတ်သိမ်း] လိုက်ပါပြီဗျာ။'); } catch(e){} });
 bot.action('del_promo', async (ctx) => { try { await ctx.answerCbQuery(); await Shop.findOneAndUpdate({}, { $unset: { promo: "" } }); ctx.editMessageText('✅ လက်ရှိ Promo Code အား စနစ်ထဲမှ အောင်မြင်စွာ ပယ်ဖျက်လိုက်ပါပြီဗျာ။'); } catch(e){} });
 
-// Server Live Verification & Auto Refresh Routine
-const server = http.createServer((req, res) => { res.end('Aura Engine Core is Online.'); });
-server.listen(process.env.PORT || 3000, () => { 
-    // FIXED: polling setting with dropPendingUpdates to forcefully clear conflicts on Render
-    bot.launch({
-        polling: {
-            dropPendingUpdates: true
-        }
-    })
-    .then(() => console.log('🚀 Aura Digital Premium Engine is Live with zero null/conflict bugs.'))
-    .catch(err => console.error('Bot launch failed:', err));
+const PORT = process.env.PORT || 3000;
+
+// Webhook ချိတ်ခြင်း
+bot.telegram.setWebhook(`${URL}/bot${BOT_TOKEN}`);
+
+// Server တည်ဆောက်ခြင်း
+const server = http.createServer((req, res) => {
+    if (req.url === `/bot${BOT_TOKEN}`) {
+        bot.handleUpdate(req, res);
+    } else {
+        res.end('Aura Digital Bot is Online via Webhook.');
+    }
+});
+
+server.listen(PORT, () => {
+    console.log(`🚀 Bot is live on port ${PORT} via Webhook.`);
 });
