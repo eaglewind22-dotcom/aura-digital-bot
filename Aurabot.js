@@ -549,13 +549,14 @@ bot.hears('🏪 ဆိုင် ဖွင့်/ပိတ် Panel', async (ctx)
     let s = await Shop.findOne() || await Shop.create({});
     ctx.reply(`🏪 လက်ရှိဆိုင်အခြေအနေ: ${s.shopOpen ? '🟢 ဖွင့်ထားသည်' : '🔴 ပိတ်ထားသည်'}`, Markup.inlineKeyboard([[Markup.button.callback('🟢 ဖွင့်မည်', 'shop_open'), Markup.button.callback('🔴 ပိတ်မည်', 'shop_close')]]));
 });
-
 bot.hears('💰 လက်ရှိဈေးနှုန်းများကြည့်ရန်', async (ctx) => {
     if (!isAdmin(ctx)) return;
     let s = await Shop.findOne() || await Shop.create({});
     let msg = `💰 *လက်ရှိ သတ်မှတ်ထားသော စျေးနှုန်းဇယား*\n\n`;
     Object.keys(ITEM_NAMES).forEach(k => { msg += `• *${ITEM_NAMES[k]}*\n  ရောင်းဈေး: ${s.prices.get(k) || 0} Ks | ရင်းဈေး: ${s.costs.get(k) || 0} Ks\n\n`; });
     const kb = Object.keys(ITEM_NAMES).map(k => [Markup.button.callback(`⚙️ ပြင်မည် - ${ITEM_NAMES[k]}`, `eprc_${k}`)]);
+    ctx.reply(msg, Markup.inlineKeyboard(kb)); // <- ဒီစာသား ပြင်လိုက်တာပါ
+});
     
     // ✅ (ERROR FIXED နေရာ) - Keyboard Error
     ctx.reply(msg, Markup.inlineKeyboard(kb));
@@ -721,12 +722,15 @@ bot.action('del_promo', async (ctx) => { try { await ctx.answerCbQuery(); await 
 // ==========================================
 // FIX: WEBHOOK INITIALIZATION
 // ==========================================
-// ✅ (ERROR FIXED နေရာ) - နှစ်ခါထပ်နေတာနဲ့ Syntax အမှား ပြင်ဆင်ပြီး
 const PORT = process.env.PORT || 3000;
+
+// Webhook ချိတ်ခြင်း (Slash နှစ်ခု ပြင်ထားသည်)
 const WEBHOOK_URL = `${process.env.RENDER_EXTERNAL_URL}/bot${BOT_TOKEN}`;
 
 bot.telegram.setWebhook(WEBHOOK_URL).then(() => {
     console.log(`✅ Webhook set successfully to: ${WEBHOOK_URL}`);
+}).catch(err => {
+    console.error(`🔴 Webhook Error:`, err);
 });
 
 const server = http.createServer((req, res) => {
