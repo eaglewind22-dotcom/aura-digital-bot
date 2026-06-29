@@ -6,7 +6,7 @@ const http = require('http');
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const ADMIN_CHAT_ID = '7534742589';
 const ADMIN_USERNAME = '@Wunna2232003';
-const BOT_USERNAME = 'AuraDigitalPremium_Bot';
+const BOT_USERNAME = 'Digital_mlbb_bot';
 const CHANNEL_USERNAME = '@AuraDigitalPremium';
 const MONGO_URI = 'mongodb+srv://eaglewind22_db:2232003wunna@cluster0.qqgs4ef.mongodb.net/aura_digital?retryWrites=true&w=majority&appName=Cluster0';
 
