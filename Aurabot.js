@@ -723,8 +723,6 @@ bot.action('del_promo', async (ctx) => { try { await ctx.answerCbQuery(); await 
 // FIX: WEBHOOK INITIALIZATION
 // ==========================================
 const PORT = process.env.PORT || 3000;
-
-// Webhook ချိတ်ခြင်း (Slash နှစ်ခု ပြင်ထားသည်)
 const WEBHOOK_URL = `${process.env.RENDER_EXTERNAL_URL}/bot${BOT_TOKEN}`;
 
 bot.telegram.setWebhook(WEBHOOK_URL).then(() => {
