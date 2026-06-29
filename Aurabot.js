@@ -1,15 +1,16 @@
 const { Telegraf } = require('telegraf');
 const http = require('http');
 
+// တိုက်ရိုက်ချိတ်ဆက်ခြင်း
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-bot.start((ctx) => ctx.reply('Bot အလုပ်လုပ်နေပါပြီ အကိုရေ!'));
+bot.start((ctx) => ctx.reply('Bot အလုပ်လုပ်နေပါပြီ!'));
 
-// Webhook မသုံးတော့ဘဲ Polling သုံးမယ်
-bot.launch();
+bot.launch({
+  dropPendingUpdates: true, // အရေးကြီးပါတယ် - Pending update တွေကို ဖျက်ထုတ်ပေးပါ
+});
 
-// ဒါပေမဲ့ Render က Port ဖွင့်ခိုင်းနေလို့ ဒါလေးကို ထည့်ပေးထားပါ
 const server = http.createServer((req, res) => {
-    res.end('Bot is running');
+  res.end('Bot is running');
 });
 server.listen(process.env.PORT || 3000);
